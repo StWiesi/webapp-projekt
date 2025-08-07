@@ -5,8 +5,8 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Webapp Projekt',
-  description: 'Eine moderne Web-Applikation erstellt mit Next.js',
+  title: 'Excel Viewer - Upload & Anzeige von Excel-Dateien',
+  description: 'Laden Sie Excel-Dateien (.xlsx, .xls, .xlsm) hoch und betrachten Sie sie als interaktive HTML-Tabelle mit Suche, Sortierung und Export-Funktion.',
 };
 
 export default function RootLayout({

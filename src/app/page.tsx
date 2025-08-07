@@ -1,89 +1,104 @@
-import Image from 'next/image';
+'use client';
+
+import { useState } from 'react';
+import ExcelUploader from '@/components/ExcelUploader';
+import ExcelTable from '@/components/ExcelTable';
+import ErrorMessage from '@/components/ErrorMessage';
 
 export default function Home() {
+  const [excelData, setExcelData] = useState<any[][] | null>(null);
+  const [filename, setFilename] = useState<string>('');
+  const [error, setError] = useState<string>('');
+
+  const handleDataLoaded = (data: any[][], filename: string) => {
+    setExcelData(data);
+    setFilename(filename);
+    setError('');
+  };
+
+  const handleError = (errorMessage: string) => {
+    setError(errorMessage);
+    setExcelData(null);
+    setFilename('');
+  };
+
+  const handleClear = () => {
+    setExcelData(null);
+    setFilename('');
+    setError('');
+  };
+
+  const clearError = () => {
+    setError('');
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Willkommen zu Ihrer neuen&nbsp;
-          <code className="font-mono font-bold">Web-Applikation</code>
-        </p>
-      </div>
-
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <h1 className="text-4xl font-bold text-center">
-          🚀 Ihre moderne Web-App
-        </h1>
-      </div>
-
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Dokumentation{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Entdecken Sie die Next.js Dokumentation und lernen Sie mehr über die Features.
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+            📊 Excel Viewer
+          </h1>
+          <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+            Laden Sie Ihre Excel-Dateien hoch und betrachten Sie sie als interaktive HTML-Tabelle.
+            Unterstützt .xlsx, .xls und .xlsm Formate.
           </p>
-        </a>
+        </div>
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Lernen{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Lernen Sie Next.js mit einem interaktiven Kurs und Feedback.
-          </p>
-        </a>
+        {/* Error Message */}
+        {error && (
+          <ErrorMessage message={error} onClose={clearError} />
+        )}
 
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Vorlagen{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Erkunden Sie die Next.js 13 Playground und experimentieren Sie.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50 text-balance">
-            Deployen Sie Ihre Next.js App sofort mit Vercel.
-          </p>
-        </a>
+        {/* Upload oder Tabelle */}
+        {!excelData ? (
+          <div className="flex flex-col items-center justify-center space-y-8">
+            <ExcelUploader 
+              onDataLoaded={handleDataLoaded}
+              onError={handleError}
+            />
+            
+            {/* Features */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mt-12">
+              <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+                <div className="text-3xl mb-4">🎯</div>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                  Drag & Drop
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Einfaches Hochladen durch Ziehen und Ablegen oder Klicken
+                </p>
+              </div>
+              
+              <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+                <div className="text-3xl mb-4">📱</div>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                  Responsive
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Optimiert für Desktop, Tablet und Mobile Geräte
+                </p>
+              </div>
+              
+              <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+                <div className="text-3xl mb-4">⚡</div>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                  Schnell
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Sofortige Verarbeitung und Anzeige Ihrer Excel-Daten
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <ExcelTable 
+            data={excelData} 
+            filename={filename}
+            onClear={handleClear}
+          />
+        )}
       </div>
     </main>
   );
