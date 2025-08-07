@@ -33,9 +33,9 @@ export default function ExcelUploader({ onDataLoaded, onError }: ExcelUploaderPr
         throw new Error('Bitte wählen Sie eine gültige Excel-Datei (.xlsx, .xls, .xlsm)');
       }
 
-      // Dateigröße prüfen (max 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        throw new Error('Datei ist zu groß. Maximale Größe: 10MB');
+      // Dateigröße prüfen (max 20MB)
+      if (file.size > 20 * 1024 * 1024) {
+        throw new Error('Datei ist zu groß. Maximale Größe: 20MB');
       }
 
       const data = await file.arrayBuffer();
@@ -84,7 +84,8 @@ export default function ExcelUploader({ onDataLoaded, onError }: ExcelUploaderPr
       'application/vnd.ms-excel.sheet.macroEnabled.12': ['.xlsm']
     },
     multiple: false,
-    disabled: isLoading
+    disabled: isLoading,
+    maxSize: 20 * 1024 * 1024 // 20MB
   });
 
   return (
@@ -141,7 +142,7 @@ export default function ExcelUploader({ onDataLoaded, onError }: ExcelUploaderPr
                   Drag & Drop oder klicken Sie hier
                 </p>
                 <p className="text-xs text-gray-400 dark:text-gray-500">
-                  Unterstützte Formate: .xlsx, .xls, .xlsm (max. 10MB)
+                  Unterstützte Formate: .xlsx, .xls, .xlsm (max. 20MB)
                 </p>
               </div>
             </>
