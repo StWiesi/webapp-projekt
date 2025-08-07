@@ -205,7 +205,6 @@ export default function AnalyticsChart({ data, filters, columnMapping }: Analyti
   };
 
   const ChartComponent = chartType === 'line' ? LineChart : BarChart;
-  const DataComponent = chartType === 'line' ? Line : Bar;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
@@ -315,23 +314,22 @@ export default function AnalyticsChart({ data, filters, columnMapping }: Analyti
                 formatter={(value: number) => [formatValue(value), selectedMetricInfo?.label]}
                 labelFormatter={(label) => `Datum: ${label}`}
               />
-              <DataComponent
-                {...(chartType === 'line' 
-                  ? {
-                      type: 'monotone',
-                      dataKey: selectedMetric,
-                      stroke: selectedMetricInfo?.color,
-                      strokeWidth: 3,
-                      dot: { fill: selectedMetricInfo?.color, strokeWidth: 2, r: 4 },
-                      activeDot: { r: 6, stroke: selectedMetricInfo?.color, strokeWidth: 2 }
-                    }
-                  : {
-                      dataKey: selectedMetric,
-                      fill: selectedMetricInfo?.color,
-                      radius: [4, 4, 0, 0]
-                    }
-                )}
-              />
+              {chartType === 'line' ? (
+                <Line
+                  type="monotone"
+                  dataKey={selectedMetric}
+                  stroke={selectedMetricInfo?.color}
+                  strokeWidth={3}
+                  dot={{ fill: selectedMetricInfo?.color, strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, stroke: selectedMetricInfo?.color, strokeWidth: 2 }}
+                />
+              ) : (
+                <Bar
+                  dataKey={selectedMetric}
+                  fill={selectedMetricInfo?.color}
+                  radius={[4, 4, 0, 0] as [number, number, number, number]}
+                />
+              )}
             </ChartComponent>
           </ResponsiveContainer>
         </div>

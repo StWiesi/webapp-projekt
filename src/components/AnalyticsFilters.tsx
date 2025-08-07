@@ -148,7 +148,7 @@ export default function AnalyticsFilters({ data, filters, onFiltersChange, colum
 
   // Prüfe ob Filter verfügbar sind
   const hasAnyData = FILTER_DIMENSIONS.some(dimension => 
-    availableOptions[dimension]?.length > 0
+    availableOptions[dimension.key]?.length > 0
   );
 
   if (!hasAnyData) {
