@@ -5,8 +5,8 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Excel Viewer - Upload & Anzeige von Excel-Dateien',
-  description: 'Laden Sie Excel-Dateien (.xlsx, .xls, .xlsm) hoch und betrachten Sie sie als interaktive HTML-Tabelle mit Suche, Sortierung und Export-Funktion.',
+  title: 'Excel Analytics Dashboard - Datenvisualisierung & Analyse',
+  description: 'Professionelles Analytics Dashboard für Excel-Dateien. Interaktive Diagramme, erweiterte Filter, Zeitreihen-Analyse und Datenvisualisierung für Cost, Impressions, Plays und mehr.',
 };
 
 export default function RootLayout({
