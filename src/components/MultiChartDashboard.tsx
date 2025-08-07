@@ -55,11 +55,11 @@ const CHART_TYPES = [
   { key: 'bar', label: 'Balken', icon: BarChart3 }
 ];
 
-const DEFAULT_METRICS = ['ad_requests', 'cost', 'total_impressions'];
+const DEFAULT_METRICS = ['ad_requests', 'cost'];
 
 export default function MultiChartDashboard({ data, filters, columnMapping }: MultiChartDashboardProps) {
   const [chartMetrics, setChartMetrics] = useState(DEFAULT_METRICS);
-  const [chartTypes, setChartTypes] = useState(['line', 'line', 'line']);
+  const [chartTypes, setChartTypes] = useState(['line', 'line']);
 
   // Verwende die übergebene Spalten-Zuordnung
   const headers = data[0] || [];
@@ -232,7 +232,7 @@ export default function MultiChartDashboard({ data, filters, columnMapping }: Mu
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div className="text-center">
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-            📈 Multi-Chart Analytics Dashboard
+            📊 Dual-Chart Analytics Dashboard
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {chartData.length} Datenpunkte über {chartData.length > 0 ? 
@@ -244,8 +244,8 @@ export default function MultiChartDashboard({ data, filters, columnMapping }: Mu
       </div>
 
       {/* Charts Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        {[0, 1, 2].map((chartIndex) => {
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {[0, 1].map((chartIndex) => {
           const selectedMetric = chartMetrics[chartIndex];
           const selectedType = chartTypes[chartIndex];
           const metricInfo = METRICS.find(m => m.key === selectedMetric);
