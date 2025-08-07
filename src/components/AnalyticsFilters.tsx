@@ -19,6 +19,19 @@ interface AnalyticsFiltersProps {
     site: string[];
     screenIds: string[];
   }) => void;
+  columnMapping: {
+    date: number;
+    cost: number;
+    total_impressions: number;
+    plays: number;
+    auction_wins: number;
+    ad_requests: number;
+    network: number;
+    region: number;
+    city: number;
+    site: number;
+    screenIds: number;
+  };
 }
 
 const FILTER_DIMENSIONS = [
@@ -29,33 +42,23 @@ const FILTER_DIMENSIONS = [
   { key: 'screenIds', label: 'Screen IDs', icon: '📺' }
 ];
 
-export default function AnalyticsFilters({ data, filters, onFiltersChange }: AnalyticsFiltersProps) {
+export default function AnalyticsFilters({ data, filters, onFiltersChange, columnMapping }: AnalyticsFiltersProps) {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['network']));
   const [searchTerms, setSearchTerms] = useState<{ [key: string]: string }>({});
 
-  // Extrahiere Header und finde relevante Spalten-Indizes
+  // Verwende die übergebene Spalten-Zuordnung
   const headers = data[0] || [];
   const rows = data.slice(1);
 
   const columnIndices = useMemo(() => {
     return {
-      network: headers.findIndex((h: string) => 
-        h && h.toLowerCase().includes('network')
-      ),
-      region: headers.findIndex((h: string) => 
-        h && h.toLowerCase().includes('region')
-      ),
-      city: headers.findIndex((h: string) => 
-        h && h.toLowerCase().includes('city')
-      ),
-      site: headers.findIndex((h: string) => 
-        h && h.toLowerCase().includes('site')
-      ),
-      screenIds: headers.findIndex((h: string) => 
-        h && (h.toLowerCase().includes('screen') || h.toLowerCase().includes('id'))
-      )
+      network: columnMapping.network,
+      region: columnMapping.region,
+      city: columnMapping.city,
+      site: columnMapping.site,
+      screenIds: columnMapping.screenIds
     };
-  }, [headers]);
+  }, [columnMapping]);
 
   // Extrahiere eindeutige Werte für jede Dimension
   const availableOptions = useMemo(() => {

@@ -5,6 +5,7 @@ import ExcelUploader from '@/components/ExcelUploader';
 import AnalyticsChart from '@/components/AnalyticsChart';
 import AnalyticsFilters from '@/components/AnalyticsFilters';
 import CollapsibleTable from '@/components/CollapsibleTable';
+import ColumnMapper from '@/components/ColumnMapper';
 import ErrorMessage from '@/components/ErrorMessage';
 
 export default function Home() {
@@ -17,6 +18,19 @@ export default function Home() {
     city: [] as string[],
     site: [] as string[],
     screenIds: [] as string[]
+  });
+  const [columnMapping, setColumnMapping] = useState({
+    date: -1,
+    cost: -1,
+    total_impressions: -1,
+    plays: -1,
+    auction_wins: -1,
+    ad_requests: -1,
+    network: -1,
+    region: -1,
+    city: -1,
+    site: -1,
+    screenIds: -1
   });
 
   const handleDataLoaded = (data: any[][], filename: string) => {
@@ -41,6 +55,19 @@ export default function Home() {
       city: [],
       site: [],
       screenIds: []
+    });
+    setColumnMapping({
+      date: -1,
+      cost: -1,
+      total_impressions: -1,
+      plays: -1,
+      auction_wins: -1,
+      ad_requests: -1,
+      network: -1,
+      region: -1,
+      city: -1,
+      site: -1,
+      screenIds: -1
     });
   };
 
@@ -120,6 +147,12 @@ export default function Home() {
           </div>
         ) : (
           <div className="space-y-8">
+            {/* Column Mapping */}
+            <ColumnMapper
+              data={excelData}
+              onMappingChange={setColumnMapping}
+            />
+
             {/* Analytics Dashboard */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Filter Sidebar */}
@@ -128,6 +161,7 @@ export default function Home() {
                   data={excelData}
                   filters={filters}
                   onFiltersChange={setFilters}
+                  columnMapping={columnMapping}
                 />
               </div>
               
@@ -136,6 +170,7 @@ export default function Home() {
                 <AnalyticsChart
                   data={excelData}
                   filters={filters}
+                  columnMapping={columnMapping}
                 />
               </div>
             </div>

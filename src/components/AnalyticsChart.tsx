@@ -26,6 +26,19 @@ interface AnalyticsChartProps {
     site: string[];
     screenIds: string[];
   };
+  columnMapping: {
+    date: number;
+    cost: number;
+    total_impressions: number;
+    plays: number;
+    auction_wins: number;
+    ad_requests: number;
+    network: number;
+    region: number;
+    city: number;
+    site: number;
+    screenIds: number;
+  };
 }
 
 const METRICS = [
@@ -41,51 +54,29 @@ const CHART_TYPES = [
   { key: 'bar', label: 'Balken', icon: BarChart3 }
 ];
 
-export default function AnalyticsChart({ data, filters }: AnalyticsChartProps) {
+export default function AnalyticsChart({ data, filters, columnMapping }: AnalyticsChartProps) {
   const [selectedMetric, setSelectedMetric] = useState(METRICS[0].key);
   const [chartType, setChartType] = useState('line');
 
-  // Extrahiere Header und finde relevante Spalten-Indizes
+  // Verwende die übergebene Spalten-Zuordnung
   const headers = data[0] || [];
   const rows = data.slice(1);
 
   const columnIndices = useMemo(() => {
     return {
-      date: headers.findIndex((h: string) => 
-        h && h.toLowerCase().includes('date')
-      ),
-      cost: headers.findIndex((h: string) => 
-        h && h.toLowerCase().includes('cost')
-      ),
-      total_impressions: headers.findIndex((h: string) => 
-        h && (h.toLowerCase().includes('impression') || h.toLowerCase().includes('total'))
-      ),
-      plays: headers.findIndex((h: string) => 
-        h && h.toLowerCase().includes('play')
-      ),
-      auction_wins: headers.findIndex((h: string) => 
-        h && (h.toLowerCase().includes('auction') || h.toLowerCase().includes('win'))
-      ),
-      ad_requests: headers.findIndex((h: string) => 
-        h && (h.toLowerCase().includes('request') || h.toLowerCase().includes('ad'))
-      ),
-      network: headers.findIndex((h: string) => 
-        h && h.toLowerCase().includes('network')
-      ),
-      region: headers.findIndex((h: string) => 
-        h && h.toLowerCase().includes('region')
-      ),
-      city: headers.findIndex((h: string) => 
-        h && h.toLowerCase().includes('city')
-      ),
-      site: headers.findIndex((h: string) => 
-        h && h.toLowerCase().includes('site')
-      ),
-      screen_ids: headers.findIndex((h: string) => 
-        h && (h.toLowerCase().includes('screen') || h.toLowerCase().includes('id'))
-      )
+      date: columnMapping.date,
+      cost: columnMapping.cost,
+      total_impressions: columnMapping.total_impressions,
+      plays: columnMapping.plays,
+      auction_wins: columnMapping.auction_wins,
+      ad_requests: columnMapping.ad_requests,
+      network: columnMapping.network,
+      region: columnMapping.region,
+      city: columnMapping.city,
+      site: columnMapping.site,
+      screen_ids: columnMapping.screenIds
     };
-  }, [headers]);
+  }, [columnMapping]);
 
   // Filtere und aggregiere Daten
   const chartData = useMemo(() => {
