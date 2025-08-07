@@ -42,14 +42,14 @@ const SEARCH_TERMS = {
   cost: ['cost', 'kosten', 'price', 'preis', 'spend', 'ausgaben'],
   total_impressions: ['impression', 'impressions', 'views', 'aufrufe', 'total', 'gesamt'],
   plays: ['plays', 'play', 'wiedergabe', 'playback', 'video', 'completion'],
-  auction_wins: ['auction', 'win', 'wins', 'auktion', 'gewinn', 'bid'],
+  auction_wins: ['auction_win', 'auction_wins', 'wins', 'auktion_gewinn', 'gewinn', 'bid_wins'],
   ad_requests: ['request', 'requests', 'anfrage', 'anfragen', 'ad_request', 'adrequest'],
   network: ['network', 'netzwerk', 'partner', 'supply', 'publisher'],
   region: ['region', 'country', 'land', 'location', 'geo'],
   city: ['city', 'stadt', 'ort', 'place'],
   site: ['site', 'website', 'domain', 'app', 'property'],
   screenIds: ['screen', 'id', 'placement', 'unit', 'zone', 'slot'],
-  auctionType: ['auction', 'type', 'auction_type', 'bidding', 'programmatic']
+  auctionType: ['auction_type', 'auctiontype', 'type', 'auction type', 'bidding_type', 'programmatic_type']
 };
 
 export default function ColumnMapper({ data, onMappingChange }: ColumnMapperProps) {
@@ -58,25 +58,48 @@ export default function ColumnMapper({ data, onMappingChange }: ColumnMapperProp
 
   const headers = data[0] || [];
 
-  // Automatische Erkennung
+  // Automatische Erkennung mit Konflikt-Vermeidung
   const autoMapping = useMemo(() => {
     const mapping: { [key: string]: number } = {};
+    const usedIndices = new Set<number>();
 
-    COLUMN_MAPPINGS.forEach(column => {
+    // Sortiere Spalten nach Priorität: spezifischere zuerst
+    const sortedColumns = [...COLUMN_MAPPINGS].sort((a, b) => {
+      const aTerms = SEARCH_TERMS[a.key as keyof typeof SEARCH_TERMS] || [];
+      const bTerms = SEARCH_TERMS[b.key as keyof typeof SEARCH_TERMS] || [];
+      
+      // Priorisiere Spalten mit spezifischeren Suchbegriffen (längere Begriffe zuerst)
+      const aMaxLength = Math.max(...aTerms.map(term => term.length));
+      const bMaxLength = Math.max(...bTerms.map(term => term.length));
+      
+      return bMaxLength - aMaxLength;
+    });
+
+    sortedColumns.forEach(column => {
       const searchTerms = SEARCH_TERMS[column.key as keyof typeof SEARCH_TERMS] || [];
       
-      const foundIndex = headers.findIndex((header: string) => {
-        if (!header) return false;
+      const foundIndex = headers.findIndex((header: string, index: number) => {
+        if (!header || usedIndices.has(index)) return false;
         const headerLower = header.toLowerCase().trim();
         
+        // Bevorzuge exakte Matches
+        if (searchTerms.some(term => headerLower === term || headerLower.replace(/[_\s-]/g, '') === term.replace(/[_\s-]/g, ''))) {
+          return true;
+        }
+        
+        // Dann partielle Matches
         return searchTerms.some(term => 
           headerLower.includes(term) || 
-          headerLower === term ||
           headerLower.replace(/[_\s-]/g, '').includes(term.replace(/[_\s-]/g, ''))
         );
       });
 
-      mapping[column.key] = foundIndex;
+      if (foundIndex !== -1) {
+        mapping[column.key] = foundIndex;
+        usedIndices.add(foundIndex);
+      } else {
+        mapping[column.key] = -1;
+      }
     });
 
     return mapping;
