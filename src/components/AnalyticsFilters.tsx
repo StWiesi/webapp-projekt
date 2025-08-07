@@ -144,7 +144,8 @@ export default function AnalyticsFilters({ data, filters, onFiltersChange, colum
       region: [],
       city: [],
       site: [],
-      screenIds: []
+      screenIds: [],
+      auctionType: []
     });
   };
 

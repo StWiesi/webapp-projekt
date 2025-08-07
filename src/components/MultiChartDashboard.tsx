@@ -15,7 +15,7 @@ import {
 import { format, parseISO, isValid } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { TrendingUp, BarChart3, Calendar } from 'lucide-react';
-import GermanyMap from './GermanyMap';
+
 
 interface MultiChartDashboardProps {
   data: any[][];
@@ -41,16 +41,18 @@ interface MultiChartDashboardProps {
     screenIds: number;
     auctionType: number;
   };
+  selectedMapMetric?: string;
+  onMapMetricChange?: (metric: string) => void;
 }
 
 const METRICS = [
-  { key: 'ad_requests', label: 'Ad Requests', color: '#8b5cf6', icon: '📊', unit: '', type: 'absolute', showTotal: true },
-  { key: 'cost', label: 'Cost', color: '#ef4444', icon: '💰', unit: '€', type: 'absolute', showTotal: true },
-  { key: 'total_impressions', label: 'Total Impressions', color: '#3b82f6', icon: '👁️', unit: '', type: 'absolute', showTotal: true },
+  { key: 'cost', label: 'Außenumsatz', color: '#ef4444', icon: '💰', unit: '€', type: 'absolute', showTotal: true },
+  { key: 'total_impressions', label: 'Impressions', color: '#3b82f6', icon: '👁️', unit: '', type: 'absolute', showTotal: true },
   { key: 'plays', label: 'Plays', color: '#10b981', icon: '▶️', unit: '', type: 'absolute', showTotal: true },
-  { key: 'auction_wins', label: 'Auction Wins', color: '#f59e0b', icon: '🏆', unit: '', type: 'absolute', showTotal: true },
-  { key: 'play_rate', label: 'Play Rate', color: '#06b6d4', icon: '📈', unit: '%', type: 'percentage', showTotal: false },
-  { key: 'coverage', label: 'Coverage', color: '#84cc16', icon: '🎯', unit: '%', type: 'percentage', showTotal: false }
+  { key: 'auction_wins', label: 'Scheduled Plays', color: '#f59e0b', icon: '🏆', unit: '', type: 'absolute', showTotal: true },
+  { key: 'ad_requests', label: 'Ad Requests', color: '#8b5cf6', icon: '📊', unit: '', type: 'absolute', showTotal: true },
+  { key: 'coverage', label: 'Coverage', color: '#06b6d4', icon: '🎯', unit: '%', type: 'percentage', showTotal: false },
+  { key: 'play_rate', label: 'Play Rate', color: '#84cc16', icon: '📈', unit: '%', type: 'percentage', showTotal: false }
 ];
 
 const CHART_TYPES = [
@@ -60,9 +62,18 @@ const CHART_TYPES = [
 
 const DEFAULT_METRICS = ['cost'];
 
-export default function MultiChartDashboard({ data, filters, columnMapping }: MultiChartDashboardProps) {
+export default function MultiChartDashboard({ data, filters, columnMapping, selectedMapMetric, onMapMetricChange }: MultiChartDashboardProps) {
   const [chartMetrics, setChartMetrics] = useState(DEFAULT_METRICS);
   const [chartTypes, setChartTypes] = useState(['line']);
+
+  // Synchronisiere mit der Karte wenn sich selectedMapMetric ändert
+  React.useEffect(() => {
+    if (selectedMapMetric && selectedMapMetric !== chartMetrics[0]) {
+      const newMetrics = [...chartMetrics];
+      newMetrics[0] = selectedMapMetric;
+      setChartMetrics(newMetrics);
+    }
+  }, [selectedMapMetric]);
 
   // Verwende die übergebene Spalten-Zuordnung
   const headers = data[0] || [];
@@ -212,6 +223,11 @@ export default function MultiChartDashboard({ data, filters, columnMapping }: Mu
     const newMetrics = [...chartMetrics];
     newMetrics[chartIndex] = metricKey;
     setChartMetrics(newMetrics);
+    
+    // Synchronisiere mit der Karte wenn es die erste Metrik ist
+    if (chartIndex === 0 && onMapMetricChange) {
+      onMapMetricChange(metricKey);
+    }
   };
 
   const updateChartType = (chartIndex: number, chartType: string) => {
@@ -400,12 +416,6 @@ export default function MultiChartDashboard({ data, filters, columnMapping }: Mu
         })}
       </div>
 
-      {/* Germany Map */}
-      <GermanyMap
-        data={data}
-        filters={filters}
-        columnMapping={columnMapping}
-      />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import AnalyticsFilters from '@/components/AnalyticsFilters';
 import CollapsibleTable from '@/components/CollapsibleTable';
 import ColumnMapper from '@/components/ColumnMapper';
 import ErrorMessage from '@/components/ErrorMessage';
+import GermanyMap from '@/components/GermanyMap';
 
 export default function Home() {
   const [excelData, setExcelData] = useState<any[][] | null>(null);
@@ -34,6 +35,56 @@ export default function Home() {
     screenIds: -1,
     auctionType: -1
   });
+  const [selectedMapMetric, setSelectedMapMetric] = useState<string>('cost');
+
+  // Konvertiere 2D-Array zu Array von Objekten für die Karte
+  const convertToObjectArray = (data: any[][]): any[] => {
+    if (!data || data.length < 2) return [];
+    
+    const headers = data[0];
+    const rows = data.slice(1);
+    
+    return rows.map(row => {
+      const obj: any = {};
+      headers.forEach((header, index) => {
+        // Normalisiere Spaltennamen für die Karte
+        const normalizedHeader = header?.toString()?.toLowerCase()?.trim();
+        let mappedKey = header;
+        
+        // Mappe Spaltennamen zu den erwarteten Schlüsseln
+        if (normalizedHeader?.includes('cost') || normalizedHeader?.includes('kosten') || normalizedHeader?.includes('außenumsatz')) {
+          mappedKey = 'cost';
+        } else if (normalizedHeader?.includes('impression') || normalizedHeader?.includes('impressionen')) {
+          mappedKey = 'total_impressions';
+        } else if (normalizedHeader?.includes('play') || normalizedHeader?.includes('wiedergabe')) {
+          mappedKey = 'plays';
+        } else if (normalizedHeader?.includes('auction') || normalizedHeader?.includes('auktion') || normalizedHeader?.includes('scheduled')) {
+          mappedKey = 'auction_wins';
+        } else if (normalizedHeader?.includes('request') || normalizedHeader?.includes('anfrage')) {
+          mappedKey = 'ad_requests';
+        } else if (normalizedHeader?.includes('latitude') || normalizedHeader?.includes('lat') || normalizedHeader?.includes('breitengrad')) {
+          mappedKey = 'latitude';
+        } else if (normalizedHeader?.includes('longitude') || normalizedHeader?.includes('lng') || normalizedHeader?.includes('längengrad')) {
+          mappedKey = 'longitude';
+        } else if (normalizedHeader?.includes('network') || normalizedHeader?.includes('netzwerk')) {
+          mappedKey = 'network';
+        } else if (normalizedHeader?.includes('region') || normalizedHeader?.includes('bundesland')) {
+          mappedKey = 'region';
+        } else if (normalizedHeader?.includes('city') || normalizedHeader?.includes('stadt')) {
+          mappedKey = 'city';
+        } else if (normalizedHeader?.includes('site')) {
+          mappedKey = 'site';
+        } else if (normalizedHeader?.includes('screen') || normalizedHeader?.includes('bildschirm')) {
+          mappedKey = 'screenId';
+        } else if (normalizedHeader?.includes('auction') || normalizedHeader?.includes('auktion')) {
+          mappedKey = 'auctionType';
+        }
+        
+        obj[mappedKey] = row[index];
+      });
+      return obj;
+    });
+  };
 
   const handleDataLoaded = (data: any[][], filename: string) => {
     setExcelData(data);
@@ -146,11 +197,10 @@ export default function Home() {
             </div>
           </div>
         ) : (
-          <div className="space-y-8">
-            {/* Analytics Dashboard */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-              {/* Filter Sidebar - immer links */}
-              <div className="lg:col-span-1">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            {/* Filter Sidebar - immer links und sticky */}
+            <div className="lg:col-span-1">
+              <div className="sticky top-0 h-screen overflow-y-auto">
                 <AnalyticsFilters
                   data={excelData}
                   filters={filters}
@@ -158,29 +208,40 @@ export default function Home() {
                   columnMapping={columnMapping}
                 />
               </div>
-              
-              {/* Chart & Map Area - Spalte 2-4 */}
-              <div className="lg:col-span-3">
-                <MultiChartDashboard
-                  data={excelData}
-                  filters={filters}
-                  columnMapping={columnMapping}
-                />
-              </div>
             </div>
+            
+            {/* Content Area - Spalte 2-4 */}
+            <div className="lg:col-span-3 space-y-8">
+              {/* Charts */}
+              <MultiChartDashboard
+                data={excelData}
+                filters={filters}
+                columnMapping={columnMapping}
+                selectedMapMetric={selectedMapMetric}
+                onMapMetricChange={setSelectedMapMetric}
+              />
 
-            {/* Collapsible Table at Bottom */}
-            <CollapsibleTable
-              data={excelData}
-              filename={filename}
-              onClear={handleClear}
-            />
+              {/* Germany Map */}
+              <GermanyMap
+                data={convertToObjectArray(excelData)}
+                filters={filters}
+                selectedMetric={selectedMapMetric}
+                onMetricChange={setSelectedMapMetric}
+              />
 
-            {/* Column Mapping */}
-            <ColumnMapper
-              data={excelData}
-              onMappingChange={setColumnMapping}
-            />
+              {/* Collapsible Table */}
+              <CollapsibleTable
+                data={excelData}
+                filename={filename}
+                onClear={handleClear}
+              />
+
+              {/* Column Mapping */}
+              <ColumnMapper
+                data={excelData}
+                onMappingChange={setColumnMapping}
+              />
+            </div>
           </div>
         )}
       </div>

@@ -17,6 +17,7 @@ interface ColumnMapperProps {
     city: number;
     site: number;
     screenIds: number;
+    auctionType: number;
   }) => void;
 }
 
@@ -34,22 +35,23 @@ const COLUMN_MAPPINGS = [
   { key: 'region', label: 'Region', category: 'Dimensionen', icon: '🗺️', required: false },
   { key: 'city', label: 'City', category: 'Dimensionen', icon: '🏙️', required: false },
   { key: 'site', label: 'Site', category: 'Dimensionen', icon: '📍', required: false },
-  { key: 'screenIds', label: 'Screen IDs', category: 'Dimensionen', icon: '📺', required: false }
+  { key: 'screenIds', label: 'Screen IDs', category: 'Dimensionen', icon: '📺', required: false },
+  { key: 'auctionType', label: 'Auction Type', category: 'Dimensionen', icon: '🎯', required: false }
 ];
 
 const SEARCH_TERMS = {
-  date: ['date', 'datum', 'time', 'zeit', 'tag', 'day'],
-  cost: ['cost', 'kosten', 'price', 'preis', 'spend', 'ausgaben'],
-  total_impressions: ['impression', 'impressions', 'views', 'aufrufe', 'total', 'gesamt'],
-  plays: ['plays', 'play', 'wiedergabe', 'playback', 'video', 'completion'],
-  auction_wins: ['auction_win', 'auction_wins', 'wins', 'auktion_gewinn', 'gewinn', 'bid_wins'],
-  ad_requests: ['request', 'requests', 'anfrage', 'anfragen', 'ad_request', 'adrequest'],
-  network: ['network', 'netzwerk', 'partner', 'supply', 'publisher'],
-  region: ['region', 'country', 'land', 'location', 'geo'],
-  city: ['city', 'stadt', 'ort', 'place'],
-  site: ['site', 'website', 'domain', 'app', 'property'],
-  screenIds: ['screen', 'id', 'placement', 'unit', 'zone', 'slot'],
-  auctionType: ['auction_type', 'auctiontype', 'auction type', 'bidding_type', 'programmatic_type', 'type_auction', 'auction_method', 'type auction']
+  date: ['date', 'datum', 'time', 'zeit', 'tag', 'day', 'timestamp', 'created', 'erstellt'],
+  cost: ['cost', 'kosten', 'price', 'preis', 'spend', 'ausgaben', 'amount', 'betrag', 'revenue', 'umsatz'],
+  total_impressions: ['impression', 'impressions', 'views', 'aufrufe', 'total', 'gesamt', 'imp', 'impressions_total'],
+  plays: ['plays', 'play', 'wiedergabe', 'playback', 'video', 'completion', 'played', 'abgespielt'],
+  auction_wins: ['auction_win', 'auction_wins', 'wins', 'auktion_gewinn', 'gewinn', 'bid_wins', 'win', 'auction_won'],
+  ad_requests: ['request', 'requests', 'anfrage', 'anfragen', 'ad_request', 'adrequest', 'req', 'ad_req'],
+  network: ['network', 'netzwerk', 'partner', 'supply', 'publisher', 'ssp', 'dsp', 'platform'],
+  region: ['region', 'country', 'land', 'location', 'geo', 'geography', 'territory', 'gebiet'],
+  city: ['city', 'stadt', 'ort', 'place', 'location', 'standort', 'location_city'],
+  site: ['site', 'website', 'domain', 'app', 'property', 'publisher', 'inventory', 'inventar'],
+  screenIds: ['screen', 'id', 'placement', 'unit', 'zone', 'slot', 'screen_id', 'placement_id', 'ad_unit'],
+  auctionType: ['auction_type', 'auctiontype', 'auction type', 'auction-type', 'bidding_type', 'programmatic_type', 'type_auction', 'auction_method', 'type auction', 'bid_type', 'kampagnentyp', 'campaign_type', 'auction', 'bidding', 'type']
 };
 
 export default function ColumnMapper({ data, onMappingChange }: ColumnMapperProps) {
@@ -81,17 +83,38 @@ export default function ColumnMapper({ data, onMappingChange }: ColumnMapperProp
       const foundIndex = headers.findIndex((header: string, index: number) => {
         if (!header || usedIndices.has(index)) return false;
         const headerLower = header.toLowerCase().trim();
+        const headerNormalized = headerLower.replace(/[_\s-]/g, '');
         
         // Bevorzuge exakte Matches
-        if (searchTerms.some(term => headerLower === term || headerLower.replace(/[_\s-]/g, '') === term.replace(/[_\s-]/g, ''))) {
+        if (searchTerms.some(term => {
+          const termLower = term.toLowerCase();
+          const termNormalized = termLower.replace(/[_\s-]/g, '');
+          return headerLower === termLower || headerNormalized === termNormalized;
+        })) {
           return true;
         }
         
-        // Dann partielle Matches
-        return searchTerms.some(term => 
-          headerLower.includes(term) || 
-          headerLower.replace(/[_\s-]/g, '').includes(term.replace(/[_\s-]/g, ''))
-        );
+        // Dann partielle Matches mit Gewichtung
+        const matchScores = searchTerms.map(term => {
+          const termLower = term.toLowerCase();
+          const termNormalized = termLower.replace(/[_\s-]/g, '');
+          
+          // Exakte Teilstring-Matches
+          if (headerLower.includes(termLower) || headerNormalized.includes(termNormalized)) {
+            return termLower.length; // Längere Matches bekommen höhere Priorität
+          }
+          
+          // Wort-Grenzen-Matches (für bessere Präzision)
+          const words = headerLower.split(/[_\s-]/);
+          if (words.some(word => word === termLower)) {
+            return termLower.length + 2; // Bonus für Wort-Grenzen-Matches
+          }
+          
+          return 0;
+        });
+        
+        const maxScore = Math.max(...matchScores);
+        return maxScore > 0;
       });
 
       if (foundIndex !== -1) {
@@ -131,10 +154,67 @@ export default function ColumnMapper({ data, onMappingChange }: ColumnMapperProp
     }));
   };
 
+  const resetAllMappings = () => {
+    setManualMapping({});
+  };
+
   const getColumnPreview = (columnIndex: number) => {
     if (columnIndex === -1 || !data[1]) return 'Nicht zugeordnet';
     const sampleValues = data.slice(1, 4).map(row => row[columnIndex]).filter(Boolean);
     return sampleValues.length > 0 ? sampleValues.join(', ') + '...' : 'Leer';
+  };
+
+  const getDetectionStatus = (columnKey: string) => {
+    const autoIndex = autoMapping[columnKey];
+    const manualIndex = manualMapping[columnKey];
+    
+    if (manualIndex !== undefined && manualIndex !== -1) {
+      return { type: 'manual', index: manualIndex };
+    } else if (autoIndex !== -1) {
+      return { type: 'auto', index: autoIndex };
+    } else {
+      return { type: 'none', index: -1 };
+    }
+  };
+
+  const getDetectionQuality = (columnKey: string, headerIndex: number) => {
+    if (headerIndex === -1) return null;
+    
+    const header = headers[headerIndex];
+    if (!header) return null;
+    
+    const searchTerms = SEARCH_TERMS[columnKey as keyof typeof SEARCH_TERMS] || [];
+    const headerLower = header.toLowerCase().trim();
+    const headerNormalized = headerLower.replace(/[_\s-]/g, '');
+    
+    // Prüfe auf exakte Matches
+    const exactMatch = searchTerms.some(term => {
+      const termLower = term.toLowerCase();
+      const termNormalized = termLower.replace(/[_\s-]/g, '');
+      return headerLower === termLower || headerNormalized === termNormalized;
+    });
+    
+    if (exactMatch) return 'exact';
+    
+    // Prüfe auf Wort-Grenzen-Matches
+    const words = headerLower.split(/[_\s-]/);
+    const wordMatch = searchTerms.some(term => {
+      const termLower = term.toLowerCase();
+      return words.some((word: string) => word === termLower);
+    });
+    
+    if (wordMatch) return 'word';
+    
+    // Prüfe auf partielle Matches
+    const partialMatch = searchTerms.some(term => {
+      const termLower = term.toLowerCase();
+      const termNormalized = termLower.replace(/[_\s-]/g, '');
+      return headerLower.includes(termLower) || headerNormalized.includes(termNormalized);
+    });
+    
+    if (partialMatch) return 'partial';
+    
+    return 'manual';
   };
 
   const categorizedMappings = COLUMN_MAPPINGS.reduce((acc, mapping) => {
@@ -190,7 +270,7 @@ export default function ColumnMapper({ data, onMappingChange }: ColumnMapperProp
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
             <div className="flex items-start gap-3">
               <MapPin className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-              <div>
+              <div className="flex-1">
                 <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
                   Erweiterte Spalten-Konfiguration
                 </h4>
@@ -199,6 +279,12 @@ export default function ColumnMapper({ data, onMappingChange }: ColumnMapperProp
                   manuell anpassen. Normalerweise ist keine Änderung erforderlich.
                 </p>
               </div>
+              <button
+                onClick={resetAllMappings}
+                className="px-3 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+              >
+                Reset
+              </button>
             </div>
           </div>
 
@@ -219,45 +305,7 @@ export default function ColumnMapper({ data, onMappingChange }: ColumnMapperProp
             </div>
           </div>
 
-          {/* Debug: Auction Type Detection */}
-          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
-              🔍 Auction Type Debug
-            </h4>
-            <div className="space-y-2 text-xs text-blue-700 dark:text-blue-300">
-              <div>
-                <strong>Suchbegriffe:</strong> {JSON.stringify(SEARCH_TERMS.auctionType)}
-              </div>
-              <div>
-                <strong>Gefundene Spalten:</strong>
-                <div className="ml-2">
-                {headers.map((header: string, index: number) => {
-                  if (!header) return null;
-                  const headerLower = header.toLowerCase().trim();
-                  const matches = SEARCH_TERMS.auctionType.filter(term => 
-                    headerLower.includes(term) || 
-                    headerLower === term ||
-                    headerLower.replace(/[_\s-]/g, '').includes(term.replace(/[_\s-]/g, ''))
-                  );
-                  if (matches.length > 0) {
-                    return (
-                      <div key={index} className="text-green-700 dark:text-green-300">
-                        ✓ Index {index}: "{header}" → Matches: [{matches.join(', ')}]
-                      </div>
-                    );
-                  }
-                  return null;
-                })}
-                </div>
-              </div>
-              <div>
-                <strong>Auto-Mapping:</strong> auctionType → Index {autoMapping.auctionType}
-              </div>
-              <div>
-                <strong>Final-Mapping:</strong> auctionType → Index {finalMapping.auctionType}
-              </div>
-            </div>
-          </div>
+
 
           {/* Mapping Interface */}
           {Object.entries(categorizedMappings).map(([category, mappings]) => (
@@ -269,6 +317,7 @@ export default function ColumnMapper({ data, onMappingChange }: ColumnMapperProp
               <div className="space-y-3">
                 {mappings.map((mapping) => {
                   const currentIndex = finalMapping[mapping.key];
+                  const detectionStatus = getDetectionStatus(mapping.key);
                   const isManuallySet = manualMapping[mapping.key] !== undefined;
                   
                   return (
@@ -285,15 +334,37 @@ export default function ColumnMapper({ data, onMappingChange }: ColumnMapperProp
                                 Erforderlich
                               </span>
                             )}
-                            {isManuallySet && (
+                            {detectionStatus.type === 'auto' && (
+                              <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded">
+                                Auto
+                              </span>
+                            )}
+                            {detectionStatus.type === 'manual' && (
                               <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded">
                                 Manuell
+                              </span>
+                            )}
+                            {detectionStatus.type === 'none' && (
+                              <span className="text-xs px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded">
+                                Nicht erkannt
                               </span>
                             )}
                           </div>
                           {currentIndex !== -1 && (
                             <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                               Beispiel: {getColumnPreview(currentIndex)}
+                            </p>
+                          )}
+                          {detectionStatus.type === 'auto' && currentIndex !== -1 && (
+                            <p className="text-xs text-green-600 dark:text-green-400">
+                              Automatisch erkannt: "{headers[currentIndex]}"
+                              {(() => {
+                                const quality = getDetectionQuality(mapping.key, currentIndex);
+                                if (quality === 'exact') return ' (Exakte Übereinstimmung)';
+                                if (quality === 'word') return ' (Wort-Match)';
+                                if (quality === 'partial') return ' (Partielle Übereinstimmung)';
+                                return '';
+                              })()}
                             </p>
                           )}
                         </div>
@@ -315,7 +386,9 @@ export default function ColumnMapper({ data, onMappingChange }: ColumnMapperProp
                         
                         <div className={`w-3 h-3 rounded-full ${
                           currentIndex !== -1 
-                            ? 'bg-green-500' 
+                            ? detectionStatus.type === 'auto'
+                              ? 'bg-green-500'
+                              : 'bg-blue-500'
                             : mapping.required 
                             ? 'bg-red-500' 
                             : 'bg-gray-300 dark:bg-gray-600'
