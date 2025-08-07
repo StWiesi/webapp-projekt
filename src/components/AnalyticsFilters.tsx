@@ -60,7 +60,7 @@ export default function AnalyticsFilters({ data, filters, onFiltersChange, colum
     };
   }, [columnMapping]);
 
-  // Extrahiere eindeutige Werte für jede Dimension
+  // Extrahiere eindeutige Werte für jede Dimension mit Cascading Filter Logic
   const availableOptions = useMemo(() => {
     const options: { [key: string]: string[] } = {};
 
@@ -71,8 +71,27 @@ export default function AnalyticsFilters({ data, filters, onFiltersChange, colum
         return;
       }
 
+      // Filtere Zeilen basierend auf bereits gesetzten anderen Filtern
+      const filteredRows = rows.filter(row => {
+        // Prüfe alle anderen Filter (nicht den aktuellen)
+        for (const otherDimension of FILTER_DIMENSIONS) {
+          if (otherDimension.key === dimension.key) continue; // Skip current dimension
+          
+          const otherColumnIndex = columnIndices[otherDimension.key as keyof typeof columnIndices];
+          const otherActiveFilters = filters[otherDimension.key as keyof typeof filters];
+          
+          if (otherActiveFilters.length > 0 && otherColumnIndex !== -1) {
+            const otherValue = row[otherColumnIndex]?.toString() || '';
+            if (!otherActiveFilters.includes(otherValue)) {
+              return false; // Zeile wird von anderen Filtern ausgeschlossen
+            }
+          }
+        }
+        return true;
+      });
+
       const uniqueValues = new Set<string>();
-      rows.forEach(row => {
+      filteredRows.forEach(row => {
         const value = row[columnIndex]?.toString()?.trim();
         if (value && value !== '') {
           uniqueValues.add(value);
@@ -83,7 +102,7 @@ export default function AnalyticsFilters({ data, filters, onFiltersChange, colum
     });
 
     return options;
-  }, [rows, columnIndices]);
+  }, [rows, columnIndices, filters]);
 
   const toggleSection = (section: string) => {
     const newExpanded = new Set(expandedSections);
@@ -197,6 +216,17 @@ export default function AnalyticsFilters({ data, filters, onFiltersChange, colum
       {/* Filter Sections */}
       <div className="p-4 space-y-4">
         {FILTER_DIMENSIONS.map((dimension) => {
+          const allOptions = rows.reduce((acc, row) => {
+            const columnIndex = columnIndices[dimension.key as keyof typeof columnIndices];
+            if (columnIndex !== -1) {
+              const value = row[columnIndex]?.toString()?.trim();
+              if (value && value !== '') {
+                acc.add(value);
+              }
+            }
+            return acc;
+          }, new Set<string>());
+          
           const options = availableOptions[dimension.key] || [];
           const filteredOptions = getFilteredOptions(dimension.key);
           const activeFilters = filters[dimension.key as keyof typeof filters];
@@ -217,7 +247,7 @@ export default function AnalyticsFilters({ data, filters, onFiltersChange, colum
                     {dimension.label}
                   </span>
                   <span className="text-sm text-gray-500 dark:text-gray-400">
-                    ({options.length})
+                    ({options.length}/{allOptions.size})
                   </span>
                   {activeFilters.length > 0 && (
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">

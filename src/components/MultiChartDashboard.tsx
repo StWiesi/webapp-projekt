@@ -41,13 +41,13 @@ interface MultiChartDashboardProps {
 }
 
 const METRICS = [
-  { key: 'ad_requests', label: 'Ad Requests', color: '#8b5cf6', icon: '📊', unit: '' },
-  { key: 'cost', label: 'Cost', color: '#ef4444', icon: '💰', unit: '€' },
-  { key: 'total_impressions', label: 'Total Impressions', color: '#3b82f6', icon: '👁️', unit: '' },
-  { key: 'plays', label: 'Plays', color: '#10b981', icon: '▶️', unit: '' },
-  { key: 'auction_wins', label: 'Auction Wins', color: '#f59e0b', icon: '🏆', unit: '' },
-  { key: 'play_rate', label: 'Play Rate', color: '#06b6d4', icon: '📈', unit: '%' },
-  { key: 'coverage', label: 'Coverage', color: '#84cc16', icon: '🎯', unit: '%' }
+  { key: 'ad_requests', label: 'Ad Requests', color: '#8b5cf6', icon: '📊', unit: '', type: 'absolute', showTotal: true },
+  { key: 'cost', label: 'Cost', color: '#ef4444', icon: '💰', unit: '€', type: 'absolute', showTotal: true },
+  { key: 'total_impressions', label: 'Total Impressions', color: '#3b82f6', icon: '👁️', unit: '', type: 'absolute', showTotal: true },
+  { key: 'plays', label: 'Plays', color: '#10b981', icon: '▶️', unit: '', type: 'absolute', showTotal: true },
+  { key: 'auction_wins', label: 'Auction Wins', color: '#f59e0b', icon: '🏆', unit: '', type: 'absolute', showTotal: true },
+  { key: 'play_rate', label: 'Play Rate', color: '#06b6d4', icon: '📈', unit: '%', type: 'percentage', showTotal: false },
+  { key: 'coverage', label: 'Coverage', color: '#84cc16', icon: '🎯', unit: '%', type: 'percentage', showTotal: false }
 ];
 
 const CHART_TYPES = [
@@ -326,6 +326,7 @@ export default function MultiChartDashboard({ data, filters, columnMapping }: Mu
                       <YAxis 
                         stroke="#6b7280"
                         fontSize={10}
+                        domain={metricInfo?.type === 'percentage' ? [0, 100] : ['dataMin', 'dataMax']}
                         tickFormatter={(value) => {
                           if (metricInfo?.unit === '€') {
                             return `€${(value / 1000).toFixed(0)}k`;
@@ -371,15 +372,24 @@ export default function MultiChartDashboard({ data, filters, columnMapping }: Mu
                 {/* Mini Stats */}
                 {chartData.length > 0 && (
                   <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                    <div className="bg-gray-50 dark:bg-gray-700 rounded p-2">
-                      <p className="text-gray-500 dark:text-gray-400">Gesamt</p>
-                      <p className="font-bold text-gray-900 dark:text-white">
-                        {formatValue(
-                          chartData.reduce((sum, item) => sum + item[selectedMetric], 0),
-                          metricInfo?.unit || ''
-                        )}
-                      </p>
-                    </div>
+                    {metricInfo?.showTotal ? (
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded p-2">
+                        <p className="text-gray-500 dark:text-gray-400">Gesamt</p>
+                        <p className="font-bold text-gray-900 dark:text-white">
+                          {formatValue(
+                            chartData.reduce((sum, item) => sum + item[selectedMetric], 0),
+                            metricInfo?.unit || ''
+                          )}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded p-2 opacity-50">
+                        <p className="text-gray-500 dark:text-gray-400">Gesamt</p>
+                        <p className="font-bold text-gray-900 dark:text-white text-xs">
+                          N/A
+                        </p>
+                      </div>
+                    )}
                     <div className="bg-gray-50 dark:bg-gray-700 rounded p-2">
                       <p className="text-gray-500 dark:text-gray-400">Ø</p>
                       <p className="font-bold text-gray-900 dark:text-white">
