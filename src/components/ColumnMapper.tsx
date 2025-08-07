@@ -49,7 +49,7 @@ const SEARCH_TERMS = {
   city: ['city', 'stadt', 'ort', 'place'],
   site: ['site', 'website', 'domain', 'app', 'property'],
   screenIds: ['screen', 'id', 'placement', 'unit', 'zone', 'slot'],
-  auctionType: ['auction_type', 'auctiontype', 'type', 'auction type', 'bidding_type', 'programmatic_type']
+  auctionType: ['auction_type', 'auctiontype', 'auction type', 'bidding_type', 'programmatic_type', 'type_auction', 'auction_method', 'type auction']
 };
 
 export default function ColumnMapper({ data, onMappingChange }: ColumnMapperProps) {

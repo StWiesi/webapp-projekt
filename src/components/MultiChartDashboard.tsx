@@ -15,6 +15,7 @@ import {
 import { format, parseISO, isValid } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { TrendingUp, BarChart3, Calendar } from 'lucide-react';
+import GermanyMap from './GermanyMap';
 
 interface MultiChartDashboardProps {
   data: any[][];
@@ -252,8 +253,8 @@ export default function MultiChartDashboard({ data, filters, columnMapping }: Mu
         </div>
       </div>
 
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Charts Grid - nebeneinander */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {[0, 1].map((chartIndex) => {
           const selectedMetric = chartMetrics[chartIndex];
           const selectedType = chartTypes[chartIndex];
@@ -413,6 +414,13 @@ export default function MultiChartDashboard({ data, filters, columnMapping }: Mu
           );
         })}
       </div>
+
+      {/* Germany Map */}
+      <GermanyMap
+        data={data}
+        filters={filters}
+        columnMapping={columnMapping}
+      />
     </div>
   );
 }
