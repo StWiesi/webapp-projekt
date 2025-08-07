@@ -24,6 +24,7 @@ interface MultiChartDashboardProps {
     city: string[];
     site: string[];
     screenIds: string[];
+    auctionType: string[];
   };
   columnMapping: {
     date: number;
@@ -37,6 +38,7 @@ interface MultiChartDashboardProps {
     city: number;
     site: number;
     screenIds: number;
+    auctionType: number;
   };
 }
 
@@ -77,7 +79,8 @@ export default function MultiChartDashboard({ data, filters, columnMapping }: Mu
       region: columnMapping.region,
       city: columnMapping.city,
       site: columnMapping.site,
-      screen_ids: columnMapping.screenIds
+      screen_ids: columnMapping.screenIds,
+      auction_type: columnMapping.auctionType
     };
   }, [columnMapping]);
 
@@ -115,6 +118,12 @@ export default function MultiChartDashboard({ data, filters, columnMapping }: Mu
       if (filters.screenIds.length > 0 && columnIndices.screen_ids !== -1) {
         const screenValue = row[columnIndices.screen_ids]?.toString() || '';
         if (!filters.screenIds.includes(screenValue)) return false;
+      }
+
+      // Auction Type Filter
+      if (filters.auctionType.length > 0 && columnIndices.auction_type !== -1) {
+        const auctionValue = row[columnIndices.auction_type]?.toString() || '';
+        if (!filters.auctionType.includes(auctionValue)) return false;
       }
 
       return true;
@@ -232,7 +241,7 @@ export default function MultiChartDashboard({ data, filters, columnMapping }: Mu
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div className="text-center">
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-            📊 Dual-Chart Analytics Dashboard
+            📊 Analytics Dashboard
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {chartData.length} Datenpunkte über {chartData.length > 0 ? 
@@ -257,9 +266,7 @@ export default function MultiChartDashboard({ data, filters, columnMapping }: Mu
               <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-lg font-medium text-gray-900 dark:text-white">
-                      Diagramm {chartIndex + 1}
-                    </h4>
+                    <div className="h-6"></div>
                     <div className="flex gap-1">
                       {CHART_TYPES.map((type) => {
                         const Icon = type.icon;
@@ -326,7 +333,7 @@ export default function MultiChartDashboard({ data, filters, columnMapping }: Mu
                       <YAxis 
                         stroke="#6b7280"
                         fontSize={10}
-                        domain={metricInfo?.type === 'percentage' ? [0, 100] : ['dataMin', 'dataMax']}
+                        domain={metricInfo?.type === 'percentage' ? [0, 100] : [0, 'dataMax']}
                         tickFormatter={(value) => {
                           if (metricInfo?.unit === '€') {
                             return `€${(value / 1000).toFixed(0)}k`;

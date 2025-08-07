@@ -11,6 +11,7 @@ interface AnalyticsFiltersProps {
     city: string[];
     site: string[];
     screenIds: string[];
+    auctionType: string[];
   };
   onFiltersChange: (filters: {
     network: string[];
@@ -18,6 +19,7 @@ interface AnalyticsFiltersProps {
     city: string[];
     site: string[];
     screenIds: string[];
+    auctionType: string[];
   }) => void;
   columnMapping: {
     date: number;
@@ -31,6 +33,7 @@ interface AnalyticsFiltersProps {
     city: number;
     site: number;
     screenIds: number;
+    auctionType: number;
   };
 }
 
@@ -39,11 +42,12 @@ const FILTER_DIMENSIONS = [
   { key: 'region', label: 'Region', icon: '🗺️' },
   { key: 'city', label: 'City', icon: '🏙️' },
   { key: 'site', label: 'Site', icon: '📍' },
-  { key: 'screenIds', label: 'Screen IDs', icon: '📺' }
+  { key: 'screenIds', label: 'Screen IDs', icon: '📺' },
+  { key: 'auctionType', label: 'Auction Type', icon: '🎩' }
 ];
 
 export default function AnalyticsFilters({ data, filters, onFiltersChange, columnMapping }: AnalyticsFiltersProps) {
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['network']));
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set([]));
   const [searchTerms, setSearchTerms] = useState<{ [key: string]: string }>({});
 
   // Verwende die übergebene Spalten-Zuordnung
@@ -56,7 +60,8 @@ export default function AnalyticsFilters({ data, filters, onFiltersChange, colum
       region: columnMapping.region,
       city: columnMapping.city,
       site: columnMapping.site,
-      screenIds: columnMapping.screenIds
+      screenIds: columnMapping.screenIds,
+      auctionType: columnMapping.auctionType
     };
   }, [columnMapping]);
 

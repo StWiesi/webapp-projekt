@@ -17,7 +17,8 @@ export default function Home() {
     region: [] as string[],
     city: [] as string[],
     site: [] as string[],
-    screenIds: [] as string[]
+    screenIds: [] as string[],
+    auctionType: [] as string[]
   });
   const [columnMapping, setColumnMapping] = useState({
     date: -1,
@@ -30,7 +31,8 @@ export default function Home() {
     region: -1,
     city: -1,
     site: -1,
-    screenIds: -1
+    screenIds: -1,
+    auctionType: -1
   });
 
   const handleDataLoaded = (data: any[][], filename: string) => {
@@ -54,7 +56,8 @@ export default function Home() {
       region: [],
       city: [],
       site: [],
-      screenIds: []
+      screenIds: [],
+      auctionType: []
     });
     setColumnMapping({
       date: -1,
@@ -67,7 +70,8 @@ export default function Home() {
       region: -1,
       city: -1,
       site: -1,
-      screenIds: -1
+      screenIds: -1,
+      auctionType: -1
     });
   };
 
@@ -81,12 +85,8 @@ export default function Home() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            📊 Excel Analytics Dashboard
+            Ströer Digital-out-of-Home Inventory Analysis Tool
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-            Laden Sie Ihre Excel-Dateien hoch und betrachten Sie sie als interaktive Diagramme und Tabellen.
-            Mit erweiterten Filter- und Visualisierungsoptionen für Ihre Datenanalyse.
-          </p>
         </div>
 
         {/* Error Message */}

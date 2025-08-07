@@ -5,8 +5,8 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Excel Analytics Dashboard - Datenvisualisierung & Analyse',
-  description: 'Professionelles Analytics Dashboard für Excel-Dateien. Interaktive Diagramme, erweiterte Filter, Zeitreihen-Analyse und Datenvisualisierung für Cost, Impressions, Plays und mehr.',
+  title: 'Ströer Digital-out-of-Home Inventory Analysis Tool',
+  description: 'Ströer Digital-out-of-Home Inventory Analysis Tool',
 };
 
 export default function RootLayout({
