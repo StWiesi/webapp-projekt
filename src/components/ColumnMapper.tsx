@@ -134,7 +134,7 @@ export default function ColumnMapper({ data, onMappingChange }: ColumnMapperProp
           <Settings className="h-5 w-5 text-blue-500" />
           <div className="text-left">
             <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-              Spalten-Zuordnung
+              ⚙️ Erweiterte Spalten-Konfiguration
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               {mappedCount} von {COLUMN_MAPPINGS.length} Spalten zugeordnet
@@ -168,11 +168,11 @@ export default function ColumnMapper({ data, onMappingChange }: ColumnMapperProp
               <MapPin className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
               <div>
                 <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
-                  Spalten-Zuordnung
+                  Erweiterte Spalten-Konfiguration
                 </h4>
                 <p className="text-sm text-blue-700 dark:text-blue-300">
-                  Das System versucht automatisch, Ihre Excel-Spalten den entsprechenden Kategorien zuzuordnen. 
-                  Sie können die Zuordnung manuell anpassen, falls nötig.
+                  Falls Filter oder Diagramme nicht korrekt funktionieren, können Sie hier die automatische Spalten-Zuordnung 
+                  manuell anpassen. Normalerweise ist keine Änderung erforderlich.
                 </p>
               </div>
             </div>

@@ -147,12 +147,6 @@ export default function Home() {
           </div>
         ) : (
           <div className="space-y-8">
-            {/* Column Mapping */}
-            <ColumnMapper
-              data={excelData}
-              onMappingChange={setColumnMapping}
-            />
-
             {/* Analytics Dashboard */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
               {/* Filter Sidebar */}
@@ -180,6 +174,12 @@ export default function Home() {
               data={excelData}
               filename={filename}
               onClear={handleClear}
+            />
+
+            {/* Column Mapping */}
+            <ColumnMapper
+              data={excelData}
+              onMappingChange={setColumnMapping}
             />
           </div>
         )}
