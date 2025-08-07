@@ -58,11 +58,11 @@ const CHART_TYPES = [
   { key: 'bar', label: 'Balken', icon: BarChart3 }
 ];
 
-const DEFAULT_METRICS = ['ad_requests', 'cost'];
+const DEFAULT_METRICS = ['cost'];
 
 export default function MultiChartDashboard({ data, filters, columnMapping }: MultiChartDashboardProps) {
   const [chartMetrics, setChartMetrics] = useState(DEFAULT_METRICS);
-  const [chartTypes, setChartTypes] = useState(['line', 'line']);
+  const [chartTypes, setChartTypes] = useState(['line']);
 
   // Verwende die übergebene Spalten-Zuordnung
   const headers = data[0] || [];
@@ -238,24 +238,9 @@ export default function MultiChartDashboard({ data, filters, columnMapping }: Mu
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <div className="text-center">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-            📊 Analytics Dashboard
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {chartData.length} Datenpunkte über {chartData.length > 0 ? 
-              `${chartData[0].displayDate} - ${chartData[chartData.length - 1].displayDate}` : 
-              'Zeitraum'
-            }
-          </p>
-        </div>
-      </div>
-
-      {/* Charts Grid - nebeneinander */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {[0, 1].map((chartIndex) => {
+      {/* Single Chart */}
+      <div className="grid grid-cols-1 gap-6">
+        {[0].map((chartIndex) => {
           const selectedMetric = chartMetrics[chartIndex];
           const selectedType = chartTypes[chartIndex];
           const metricInfo = METRICS.find(m => m.key === selectedMetric);

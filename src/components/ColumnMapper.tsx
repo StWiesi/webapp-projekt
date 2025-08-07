@@ -219,6 +219,46 @@ export default function ColumnMapper({ data, onMappingChange }: ColumnMapperProp
             </div>
           </div>
 
+          {/* Debug: Auction Type Detection */}
+          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
+              🔍 Auction Type Debug
+            </h4>
+            <div className="space-y-2 text-xs text-blue-700 dark:text-blue-300">
+              <div>
+                <strong>Suchbegriffe:</strong> {JSON.stringify(SEARCH_TERMS.auctionType)}
+              </div>
+              <div>
+                <strong>Gefundene Spalten:</strong>
+                <div className="ml-2">
+                {headers.map((header: string, index: number) => {
+                  if (!header) return null;
+                  const headerLower = header.toLowerCase().trim();
+                  const matches = SEARCH_TERMS.auctionType.filter(term => 
+                    headerLower.includes(term) || 
+                    headerLower === term ||
+                    headerLower.replace(/[_\s-]/g, '').includes(term.replace(/[_\s-]/g, ''))
+                  );
+                  if (matches.length > 0) {
+                    return (
+                      <div key={index} className="text-green-700 dark:text-green-300">
+                        ✓ Index {index}: "{header}" → Matches: [{matches.join(', ')}]
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
+                </div>
+              </div>
+              <div>
+                <strong>Auto-Mapping:</strong> auctionType → Index {autoMapping.auctionType}
+              </div>
+              <div>
+                <strong>Final-Mapping:</strong> auctionType → Index {finalMapping.auctionType}
+              </div>
+            </div>
+          </div>
+
           {/* Mapping Interface */}
           {Object.entries(categorizedMappings).map(([category, mappings]) => (
             <div key={category} className="mb-6">
