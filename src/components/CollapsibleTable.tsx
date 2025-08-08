@@ -7,27 +7,28 @@ import ExcelTable from './ExcelTable';
 interface CollapsibleTableProps {
   data: any[][];
   filename: string;
-  onClear: () => void;
 }
 
-export default function CollapsibleTable({ data, filename, onClear }: CollapsibleTableProps) {
+export default function CollapsibleTable({ data, filename }: CollapsibleTableProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const rowCount = data.length - 1; // Minus Header
   const columnCount = data[0]?.length || 0;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+    <div className="card overflow-hidden">
       {/* Collapsible Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+        className="w-full flex items-center justify-between p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
       >
-        <div className="flex items-center gap-3">
-          <TableIcon className="h-5 w-5 text-gray-500" />
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 bg-stroer-500 rounded-booking flex items-center justify-center">
+            <TableIcon className="h-5 w-5 text-white" />
+          </div>
           <div className="text-left">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-              📊 Rohdaten-Tabelle
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Rohdaten-Tabelle
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               {filename} • {rowCount.toLocaleString()} Zeilen × {columnCount} Spalten
@@ -35,7 +36,7 @@ export default function CollapsibleTable({ data, filename, onClear }: Collapsibl
           </div>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">
             {isExpanded ? 'Einklappen' : 'Anzeigen'}
           </span>
@@ -50,16 +51,16 @@ export default function CollapsibleTable({ data, filename, onClear }: Collapsibl
       {/* Collapsible Content */}
       {isExpanded && (
         <div className="border-t border-gray-200 dark:border-gray-700">
-          <div className="p-4">
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
-              <div className="flex items-start gap-3">
-                <TableIcon className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+          <div className="p-6">
+            <div className="bg-stroer-50 dark:bg-stroer-900/20 border border-stroer-200 dark:border-stroer-800 rounded-booking-lg p-4 mb-6">
+              <div className="flex items-start gap-4">
+                <TableIcon className="h-5 w-5 text-stroer-500 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+                  <h4 className="text-sm font-semibold text-stroer-800 dark:text-stroer-200 mb-2">
                     Vollständige Datenansicht
                   </h4>
-                  <p className="text-sm text-blue-700 dark:text-blue-300">
-                    Hier sehen Sie alle Rohdaten aus Ihrer Excel-Datei mit Such-, Sortier- und Exportfunktionen.
+                  <p className="text-sm text-stroer-700 dark:text-stroer-300">
+                    Hier sehen Sie alle Rohdaten aus Ihrer Excel-Datei mit Such- und Sortierfunktionen.
                   </p>
                 </div>
               </div>
@@ -68,7 +69,6 @@ export default function CollapsibleTable({ data, filename, onClear }: Collapsibl
             <ExcelTable 
               data={data} 
               filename={filename}
-              onClear={onClear}
             />
           </div>
         </div>

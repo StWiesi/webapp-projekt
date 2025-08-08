@@ -1,15 +1,14 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { ChevronDown, ChevronUp, Download, Search, RotateCcw } from 'lucide-react';
+import { ChevronDown, ChevronUp, Search } from 'lucide-react';
 
 interface ExcelTableProps {
   data: any[][];
   filename: string;
-  onClear: () => void;
 }
 
-export default function ExcelTable({ data, filename, onClear }: ExcelTableProps) {
+export default function ExcelTable({ data, filename }: ExcelTableProps) {
   const [sortConfig, setSortConfig] = useState<{
     key: number;
     direction: 'asc' | 'desc';
@@ -76,25 +75,13 @@ export default function ExcelTable({ data, filename, onClear }: ExcelTableProps)
     });
   };
 
-  const downloadCSV = () => {
-    const csvContent = [headers, ...rows]
-      .map(row => row.map(cell => `"${cell || ''}"`).join(','))
-      .join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename.replace(/\.[^/.]+$/, '') + '.csv';
-    link.click();
-  };
-
   if (!data || data.length === 0) {
     return null;
   }
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-4">
-      {/* Header mit Aktionen */}
+      {/* Header mit Suchfeld */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
         <div>
           <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
@@ -105,40 +92,19 @@ export default function ExcelTable({ data, filename, onClear }: ExcelTableProps)
           </p>
         </div>
         
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          {/* Suchfeld */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Suchen..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-          
-          {/* Aktions-Buttons */}
-          <div className="flex gap-2">
-            <button
-              onClick={downloadCSV}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-            >
-              <Download className="h-4 w-4" />
-              CSV
-            </button>
-            
-            <button
-              onClick={onClear}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Neue Datei
-            </button>
-          </div>
+        {/* Suchfeld */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Suchen..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+          />
         </div>
       </div>
 

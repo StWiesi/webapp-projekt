@@ -1,202 +1,159 @@
-# Webapp Projekt
+# Analytics - Digital-out-of-Home Inventory Analysis
 
-[![CI/CD Pipeline](https://github.com/USERNAME/webapp-projekt/workflows/CI/CD%20Pipeline/badge.svg)](https://github.com/USERNAME/webapp-projekt/actions)
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/USERNAME/webapp-projekt)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+Eine moderne Webanwendung zur Analyse von Digital-out-of-Home Daten mit interaktiven Diagrammen, Filtern und einer Deutschland-Karte.
 
-Eine moderne Web-Applikation erstellt mit Next.js 14, TypeScript und Tailwind CSS.
+## 🚀 Features
 
-> 🚨 **Wichtig:** Folgen Sie der [GITHUB_SETUP.md](./GITHUB_SETUP.md) Anleitung für das GitHub Setup!
+### 📊 Datenanalyse
+- **Interaktive Diagramme**: Drei separate Charts mit individueller Metrik-Auswahl
+- **Berechnete Metriken**: Play Rate und Coverage werden automatisch berechnet
+- **Erweiterte Filter**: Für Network, Region, City, Site und Screen IDs
+- **Rohdaten-Tabelle**: Vollständige Datenansicht mit Such- und Sortierfunktionen
 
-## 🚀 Tech Stack
+### 🗺️ Deutschland-Karte
+- **Bundesländer-Einfärbung**: Regionale Datenvisualisierung
+- **Städte-Kreise**: Dynamische Kreise basierend auf Metrik-Werten
+- **Site-Marker**: Präzise Markierungen für einzelne Standorte
+- **Zoom-Funktionalität**: Responsive Kreise die sich anpassen
+- **Tooltips**: Detaillierte Informationen bei Klick
 
-- **Framework:** Next.js 14 (App Router)
-- **Sprache:** TypeScript
-- **Styling:** Tailwind CSS
-- **Linting:** ESLint + Prettier
-- **Git Hooks:** Husky + lint-staged
-- **Node.js:** >= 18.0.0
+### 📁 File-Management
+- **Excel-Upload**: Drag & Drop für .xlsx und .csv Dateien
+- **FileInfo-Komponente**: Übersicht über aktuelle Datei
+- **File-Austausch**: Einfaches Hochladen neuer Dateien
+- **Statistiken**: Zeilen- und Spaltenanzahl
 
-## 📋 Voraussetzungen
+### 🎨 Design
+- **Modernes UI**: Booking.com Look & Feel mit Ströer-Farben
+- **Dark Mode**: Standardmäßig aktiviert
+- **Responsive Layout**: Optimiert für alle Bildschirmgrößen
+- **Professionelles Logo**: "Analytics" Branding
 
-Bevor Sie beginnen, stellen Sie sicher, dass folgende Software installiert ist:
+## 🛠️ Technologie-Stack
 
-### 1. Node.js installieren
+- **Frontend**: Next.js 14, React 18, TypeScript
+- **Styling**: Tailwind CSS mit custom Design System
+- **Charts**: Recharts für interaktive Diagramme
+- **Maps**: Google Maps API mit GeoJSON
+- **File Processing**: XLSX für Excel-Dateien
+- **Icons**: Lucide React
+- **Date Handling**: date-fns
 
-**Option A: Mit Homebrew (empfohlen für macOS)**
-```bash
-# Homebrew installieren (falls noch nicht vorhanden)
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+## 📦 Installation
 
-# Node.js installieren
-brew install node
-```
-
-**Option B: Direkt von nodejs.org**
-- Gehen Sie zu [nodejs.org](https://nodejs.org/)
-- Laden Sie die LTS-Version herunter und installieren Sie sie
-
-### 2. Git installieren
-
-```bash
-# Mit Homebrew
-brew install git
-
-# Oder Xcode Command Line Tools installieren
-xcode-select --install
-```
-
-## 🛠️ Installation & Setup
-
-1. **Dependencies installieren:**
+1. **Repository klonen**
    ```bash
+   git clone <repository-url>
    cd webapp-projekt
+   ```
+
+2. **Dependencies installieren**
+   ```bash
    npm install
    ```
 
-2. **Umgebungsvariablen konfigurieren:**
+3. **Umgebungsvariablen konfigurieren**
    ```bash
    cp env.example .env.local
-   # Bearbeiten Sie .env.local mit Ihren spezifischen Werten
+   ```
+   
+   Füge deine Google Maps API Key hinzu:
+   ```
+   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_api_key_here
    ```
 
-3. **Git Repository initialisieren:**
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   ```
-
-4. **Development Server starten:**
+4. **Entwicklungsserver starten**
    ```bash
    npm run dev
    ```
 
-   Öffnen Sie [http://localhost:3000](http://localhost:3000) in Ihrem Browser.
+5. **Browser öffnen**
+   ```
+   http://localhost:3000
+   ```
 
-## 📜 Verfügbare Skripte
+## 🔧 Google Maps Setup
 
-- `npm run dev` - Development Server starten
-- `npm run build` - Production Build erstellen
-- `npm start` - Production Server starten
-- `npm run lint` - ESLint ausführen
-- `npm run type-check` - TypeScript Type Checking
+1. **Google Cloud Console** öffnen
+2. **Maps JavaScript API** aktivieren
+3. **API Key** erstellen
+4. **API Key** in `.env.local` eintragen
+
+Detaillierte Anweisungen findest du in `GOOGLE_MAPS_SETUP.md`.
 
 ## 📁 Projektstruktur
 
 ```
-webapp-projekt/
-├── src/
-│   ├── app/                    # Next.js App Router
-│   │   ├── globals.css        # Globale Styles
-│   │   ├── layout.tsx         # Root Layout
-│   │   └── page.tsx           # Homepage
-│   ├── components/            # React Komponenten
-│   │   └── ui/               # UI Komponenten
-│   ├── lib/                  # Utilities
-│   └── styles/               # Zusätzliche Styles
-├── public/                   # Statische Assets
-├── .husky/                   # Git Hooks
-├── package.json             # Dependencies
-├── tailwind.config.js       # Tailwind Konfiguration
-├── tsconfig.json           # TypeScript Konfiguration
-└── next.config.js          # Next.js Konfiguration
+src/
+├── app/                    # Next.js App Router
+│   ├── globals.css        # Global Styles
+│   ├── layout.tsx         # Root Layout
+│   └── page.tsx           # Hauptseite
+├── components/            # React Komponenten
+│   ├── ui/               # UI Komponenten
+│   ├── AnalyticsFilters.tsx
+│   ├── ColumnMapper.tsx
+│   ├── CollapsibleTable.tsx
+│   ├── ErrorMessage.tsx
+│   ├── ExcelTable.tsx
+│   ├── ExcelUploader.tsx
+│   ├── FileInfo.tsx
+│   ├── GermanyMap.tsx
+│   ├── Logo.tsx
+│   └── MultiChartDashboard.tsx
+└── lib/                  # Utilities
+    └── utils.ts
 ```
 
-## 🎨 Styling
+## 🎯 Verwendung
 
-Das Projekt verwendet Tailwind CSS für das Styling. Zusätzlich ist ein einfaches UI-Komponenten-System vorbereitet.
+1. **Datei hochladen**: Excel-Datei mit Digital-out-of-Home Daten hochladen
+2. **Spalten mappen**: Automatische oder manuelle Spaltenzuordnung
+3. **Filter anwenden**: Daten nach verschiedenen Dimensionen filtern
+4. **Analyse durchführen**: Interaktive Charts und Karten erkunden
+5. **Rohdaten einsehen**: Vollständige Datenansicht in der Tabelle
 
-### Tailwind CSS Klassen verwenden:
-```tsx
-<button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-  Klick mich!
-</button>
-```
+## 📊 Unterstützte Metriken
 
-## 🔧 Entwicklung
+- **Außenumsatz** (cost)
+- **Impressions** (total_impressions)
+- **Plays** (plays)
+- **Scheduled Plays** (auction_wins)
+- **Ad Requests** (ad_requests)
+- **Coverage** (automatisch berechnet)
+- **Play Rate** (automatisch berechnet)
 
-### Code Quality
-- **ESLint:** Automatische Code-Analyse
-- **Prettier:** Code-Formatierung
-- **Husky:** Git Hooks für pre-commit Checks
-- **lint-staged:** Nur geänderte Dateien prüfen
+## 🗺️ Karten-Level
 
-### Git Workflow
-```bash
-# Neue Feature branch erstellen
-git checkout -b feature/neue-funktion
-
-# Änderungen committen (löst automatisch Linting aus)
-git add .
-git commit -m "feat: neue Funktion hinzugefügt"
-
-# Push und Pull Request erstellen
-git push origin feature/neue-funktion
-```
+- **Bundesländer**: Regionale Einfärbung
+- **Städte**: Dynamische Kreise
+- **Sites**: Präzise Marker
 
 ## 🚀 Deployment
 
-### GitHub + Vercel (Automatisch)
-Das Projekt ist für automatisches Deployment konfiguriert:
+### Vercel (Empfohlen)
+1. Repository zu Vercel verbinden
+2. Umgebungsvariablen konfigurieren
+3. Deploy
 
-1. **Push zu GitHub** → Automatischer Build und Tests
-2. **Vercel Integration** → Live Deployment bei erfolgreichem Build
-3. **Preview Deployments** → Für jeden Pull Request
+### Andere Plattformen
+```bash
+npm run build
+npm start
+```
 
-### Manuelle Deployment-Optionen
-- **Vercel:** One-Click Deploy Button oben
-- **Netlify:** Automatisches Deployment über Git
-- **Railway:** Container-basiertes Hosting
-- **DigitalOcean App Platform:** Managed Hosting
+## 🤝 Contributing
 
-### GitHub Actions
-- ✅ Automatische Tests bei jedem Push
-- ✅ TypeScript Type Checking
-- ✅ ESLint Code Quality Checks  
-- ✅ Build Verification
-- ✅ Production Deployment zu Vercel
-
-## 🔮 Nächste Schritte
-
-1. **UI-Bibliothek erweitern**
-   - Weitere shadcn/ui Komponenten hinzufügen
-   - Design System entwickeln
-
-2. **Backend Integration**
-   - API Routes erstellen
-   - Datenbank integrieren (Prisma + PostgreSQL)
-   - Authentifizierung (NextAuth.js)
-
-3. **Testing Setup**
-   - Jest für Unit Tests
-   - Cypress für E2E Tests
-   - React Testing Library
-
-4. **Performance Optimierung**
-   - Image Optimierung
-   - Bundle Analyse
-   - Caching Strategien
-
-## 📚 Weitere Ressourcen
-
-- [Next.js Dokumentation](https://nextjs.org/docs)
-- [TypeScript Handbuch](https://www.typescriptlang.org/docs/)
-- [Tailwind CSS Docs](https://tailwindcss.com/docs)
-- [shadcn/ui Komponenten](https://ui.shadcn.com/)
-
-## 🤝 Beitragen
-
-1. Fork das Repository
-2. Erstellen Sie einen Feature Branch
-3. Commiten Sie Ihre Änderungen
-4. Pushen Sie den Branch
-5. Erstellen Sie einen Pull Request
+1. Fork erstellen
+2. Feature Branch erstellen (`git checkout -b feature/amazing-feature`)
+3. Änderungen committen (`git commit -m 'Add amazing feature'`)
+4. Branch pushen (`git push origin feature/amazing-feature`)
+5. Pull Request erstellen
 
 ## 📄 Lizenz
 
-Dieses Projekt steht unter der MIT Lizenz.
+Dieses Projekt ist privat und nicht zur öffentlichen Nutzung bestimmt.
 
----
+## 🆘 Support
 
-**Viel Erfolg bei der Entwicklung Ihrer Web-Applikation! 🎉**
+Bei Fragen oder Problemen erstelle ein Issue im Repository.

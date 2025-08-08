@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Filter, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Filter, X, ChevronDown, ChevronUp, Search } from 'lucide-react';
 
 interface AnalyticsFiltersProps {
   data: any[][];
@@ -39,8 +39,8 @@ interface AnalyticsFiltersProps {
 
 const FILTER_DIMENSIONS = [
   { key: 'network', label: 'Network', icon: '🌐' },
-  { key: 'region', label: 'Region', icon: '🗺️' },
-  { key: 'city', label: 'City', icon: '🏙️' },
+  { key: 'region', label: 'Bundesland', icon: '🗺️' },
+  { key: 'city', label: 'Stadt', icon: '🏙️' },
   { key: 'site', label: 'Site', icon: '📍' },
   { key: 'screenIds', label: 'Screen IDs', icon: '📺' },
   { key: 'auctionType', label: 'Auction Type', icon: '🎩' }
@@ -122,9 +122,9 @@ export default function AnalyticsFilters({ data, filters, onFiltersChange, colum
   const toggleFilter = (dimension: string, value: string) => {
     const currentFilters = filters[dimension as keyof typeof filters];
     const newFilters = currentFilters.includes(value)
-      ? currentFilters.filter(f => f !== value)
+      ? currentFilters.filter(v => v !== value)
       : [...currentFilters, value];
-
+    
     onFiltersChange({
       ...filters,
       [dimension]: newFilters
@@ -158,12 +158,12 @@ export default function AnalyticsFilters({ data, filters, onFiltersChange, colum
 
   const getFilteredOptions = (dimension: string) => {
     const options = availableOptions[dimension] || [];
-    const searchTerm = searchTerms[dimension]?.toLowerCase() || '';
+    const searchTerm = searchTerms[dimension] || '';
     
     if (!searchTerm) return options;
     
-    return options.filter(option => 
-      option.toLowerCase().includes(searchTerm)
+    return options.filter(option =>
+      option.toLowerCase().includes(searchTerm.toLowerCase())
     );
   };
 
@@ -178,13 +178,15 @@ export default function AnalyticsFilters({ data, filters, onFiltersChange, colum
 
   if (!hasAnyData) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <div className="bg-gray-800 dark:bg-gray-900 rounded-booking-lg shadow-booking border border-gray-700 dark:border-gray-600 p-6">
         <div className="text-center">
-          <Filter className="h-8 w-8 text-gray-400 mx-auto mb-3" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+          <div className="w-12 h-12 bg-gray-700 dark:bg-gray-600 rounded-booking flex items-center justify-center mx-auto mb-4">
+            <Filter className="h-6 w-6 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-100 dark:text-gray-100 mb-2">
             Keine Filter verfügbar
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-gray-400 dark:text-gray-400">
             Die Excel-Datei enthält keine erkennbaren Dimensionen-Spalten (Network, Region, City, Site, Screen IDs).
           </p>
         </div>
@@ -193,25 +195,29 @@ export default function AnalyticsFilters({ data, filters, onFiltersChange, colum
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div className="bg-gray-800 dark:bg-gray-900 rounded-booking-lg shadow-booking border border-gray-700 dark:border-gray-600">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="p-6 border-b border-gray-700 dark:border-gray-600">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Filter className="h-5 w-5 text-blue-500" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-              Datenfilter
-            </h3>
-            {getTotalActiveFilters() > 0 && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
-                {getTotalActiveFilters()} aktiv
-              </span>
-            )}
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-stroer-500 rounded-booking flex items-center justify-center">
+              <Filter className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-100 dark:text-gray-100">
+                Datenfilter
+              </h3>
+              {getTotalActiveFilters() > 0 && (
+                <span className="badge badge-info mt-1">
+                  {getTotalActiveFilters()} aktiv
+                </span>
+              )}
+            </div>
           </div>
           {getTotalActiveFilters() > 0 && (
             <button
               onClick={clearAllFilters}
-              className="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium"
+              className="text-sm text-red-400 dark:text-red-400 hover:text-red-300 dark:hover:text-red-300 font-medium hover:bg-red-900/20 px-3 py-1 rounded-booking transition-colors"
             >
               Alle löschen
             </button>
@@ -220,7 +226,7 @@ export default function AnalyticsFilters({ data, filters, onFiltersChange, colum
       </div>
 
       {/* Filter Sections */}
-      <div className="p-4 space-y-4">
+      <div className="p-6 space-y-4">
         {FILTER_DIMENSIONS.map((dimension) => {
           const allOptions = rows.reduce((acc, row) => {
             const columnIndex = columnIndices[dimension.key as keyof typeof columnIndices];
@@ -241,58 +247,63 @@ export default function AnalyticsFilters({ data, filters, onFiltersChange, colum
           if (options.length === 0) return null;
 
           return (
-            <div key={dimension.key} className="border border-gray-200 dark:border-gray-600 rounded-lg">
+            <div key={dimension.key} className="border border-gray-700 dark:border-gray-600 rounded-booking-lg overflow-hidden">
               {/* Section Header */}
               <button
                 onClick={() => toggleSection(dimension.key)}
-                className="w-full flex items-center justify-between p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-700 dark:hover:bg-gray-800 transition-colors"
               >
-                <div className="flex items-center gap-3">
-                  <span className="text-lg">{dimension.icon}</span>
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    {dimension.label}
-                  </span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    ({options.length}/{allOptions.size})
-                  </span>
-                  {activeFilters.length > 0 && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
-                      {activeFilters.length}
+                <div className="flex items-center gap-4">
+                  <span className="text-xl">{dimension.icon}</span>
+                  <div className="text-left">
+                    <span className="font-semibold text-gray-100 dark:text-gray-100">
+                      {dimension.label}
                     </span>
-                  )}
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-sm text-gray-400 dark:text-gray-400">
+                        {options.length} von {allOptions.size}
+                      </span>
+                      {activeFilters.length > 0 && (
+                        <span className="badge badge-success">
+                          {activeFilters.length}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   {activeFilters.length > 0 && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         clearFilter(dimension.key);
                       }}
-                      className="p-1 text-red-500 hover:text-red-700 dark:hover:text-red-300"
+                      className="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-booking transition-colors"
                     >
                       <X className="h-4 w-4" />
                     </button>
                   )}
                   {isExpanded ? (
-                    <ChevronUp className="h-4 w-4 text-gray-400" />
+                    <ChevronUp className="h-5 w-5 text-gray-400" />
                   ) : (
-                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                    <ChevronDown className="h-5 w-5 text-gray-400" />
                   )}
                 </div>
               </button>
 
               {/* Section Content */}
               {isExpanded && (
-                <div className="border-t border-gray-200 dark:border-gray-600 p-3">
+                <div className="border-t border-gray-700 dark:border-gray-600 p-4 bg-gray-700/50 dark:bg-gray-800/50">
                   {/* Search */}
                   {options.length > 10 && (
-                    <div className="mb-3">
+                    <div className="mb-4 relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <input
                         type="text"
                         placeholder={`${dimension.label} suchen...`}
                         value={searchTerms[dimension.key] || ''}
                         onChange={(e) => updateSearchTerm(dimension.key, e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                        className="input-field pl-10 py-2 text-sm"
                       />
                     </div>
                   )}
@@ -302,15 +313,15 @@ export default function AnalyticsFilters({ data, filters, onFiltersChange, colum
                     {filteredOptions.map((option) => (
                       <label
                         key={option}
-                        className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded"
+                        className="flex items-center gap-3 cursor-pointer hover:bg-gray-600 dark:hover:bg-gray-700 p-3 rounded-booking transition-colors"
                       >
                         <input
                           type="checkbox"
                           checked={activeFilters.includes(option)}
                           onChange={() => toggleFilter(dimension.key, option)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          className="h-4 w-4 text-stroer-500 focus:ring-stroer-500 border-gray-600 rounded"
                         />
-                        <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
+                        <span className="text-sm text-gray-300 dark:text-gray-300 truncate">
                           {option}
                         </span>
                       </label>
@@ -318,7 +329,7 @@ export default function AnalyticsFilters({ data, filters, onFiltersChange, colum
                   </div>
 
                   {filteredOptions.length === 0 && searchTerms[dimension.key] && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                    <p className="text-sm text-gray-400 dark:text-gray-400 text-center py-4">
                       Keine Ergebnisse für "{searchTerms[dimension.key]}"
                     </p>
                   )}

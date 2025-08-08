@@ -8,6 +8,8 @@ import CollapsibleTable from '@/components/CollapsibleTable';
 import ColumnMapper from '@/components/ColumnMapper';
 import ErrorMessage from '@/components/ErrorMessage';
 import GermanyMap from '@/components/GermanyMap';
+import FileInfo from '@/components/FileInfo';
+import Logo from '@/components/Logo';
 
 export default function Home() {
   const [excelData, setExcelData] = useState<any[][] | null>(null);
@@ -131,15 +133,24 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Ströer Digital-out-of-Home Inventory Analysis Tool
-          </h1>
+    <main className="min-h-screen bg-gray-900 dark:bg-gray-950">
+      {/* Header mit Ströer Branding */}
+      <header className="bg-white dark:bg-white shadow-booking border-b border-gray-200 dark:border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <Logo />
+              </div>
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-600">
+              Digital-out-of-Home Inventory Analysis
+            </div>
+          </div>
         </div>
+      </header>
 
+      <div className="px-4 sm:px-6 lg:px-8 py-8">
         {/* Error Message */}
         {error && (
           <ErrorMessage message={error} onClose={clearError} />
@@ -147,60 +158,29 @@ export default function Home() {
 
         {/* Upload oder Tabelle */}
         {!excelData ? (
-          <div className="flex flex-col items-center justify-center space-y-8">
-            <ExcelUploader 
-              onDataLoaded={handleDataLoaded}
-              onError={handleError}
-            />
-            
-            {/* Features */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-6xl mx-auto mt-12">
-              <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-                <div className="text-3xl mb-4">📊</div>
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                  3 Diagramme
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Drei separate Diagramme mit individueller Metrik-Auswahl
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col items-center justify-center space-y-8">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold text-gray-100 dark:text-gray-100 mb-4">
+                  Willkommen bei Ströer Analytics
+                </h2>
+                <p className="text-lg text-gray-400 dark:text-gray-400 max-w-2xl">
+                  Laden Sie Ihre Excel-Datei hoch und analysieren Sie Ihre Digital-out-of-Home Daten 
+                  mit interaktiven Diagrammen, Filtern und einer Deutschland-Karte.
                 </p>
               </div>
-              
-              <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-                <div className="text-3xl mb-4">🧮</div>
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                  Berechnete Metriken
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Play Rate (Plays/Auction Wins) und Coverage (Plays/Ad Requests)
-                </p>
-              </div>
-              
-              <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-                <div className="text-3xl mb-4">🔍</div>
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                  Erweiterte Filter
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Filter für Network, Region, City, Site und Screen IDs
-                </p>
-              </div>
-              
-              <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-                <div className="text-3xl mb-4">⚡</div>
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                  Flexible Ansicht
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Linien- oder Balkendiagramme mit Live-Statistiken
-                </p>
-              </div>
+
+              <ExcelUploader 
+                onDataLoaded={handleDataLoaded}
+                onError={handleError}
+              />
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Filter Sidebar - immer links und sticky */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-0 h-screen overflow-y-auto">
+          <div className="flex gap-8 mx-[10%]">
+            {/* Filter Sidebar - feste Mindestbreite */}
+            <div className="w-80 flex-shrink-0">
+              <div className="sticky top-8 h-[calc(100vh-4rem)] overflow-y-auto">
                 <AnalyticsFilters
                   data={excelData}
                   filters={filters}
@@ -210,8 +190,8 @@ export default function Home() {
               </div>
             </div>
             
-            {/* Content Area - Spalte 2-4 */}
-            <div className="lg:col-span-3 space-y-8">
+            {/* Content Area - nimmt den verfügbaren Platz */}
+            <div className="flex-1 space-y-8 min-w-0">
               {/* Charts */}
               <MultiChartDashboard
                 data={excelData}
@@ -233,7 +213,6 @@ export default function Home() {
               <CollapsibleTable
                 data={excelData}
                 filename={filename}
-                onClear={handleClear}
               />
 
               {/* Column Mapping */}
@@ -241,6 +220,19 @@ export default function Home() {
                 data={excelData}
                 onMappingChange={setColumnMapping}
               />
+            </div>
+
+            {/* FileInfo - feste Mindestbreite */}
+            <div className="w-80 flex-shrink-0">
+              <div className="sticky top-8">
+                <FileInfo
+                  filename={filename}
+                  data={excelData}
+                  onDataLoaded={handleDataLoaded}
+                  onError={handleError}
+                  onClear={handleClear}
+                />
+              </div>
             </div>
           </div>
         )}

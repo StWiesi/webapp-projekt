@@ -2,7 +2,7 @@
 
 import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, FileText, AlertCircle } from 'lucide-react';
+import { Upload, FileText, AlertCircle, Loader2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 interface ExcelUploaderProps {
@@ -89,61 +89,102 @@ export default function ExcelUploader({ onDataLoaded, onError }: ExcelUploaderPr
   });
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
+    <div className="w-full max-w-3xl mx-auto">
       <div
         {...getRootProps()}
         className={`
-          border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200
+          bg-gray-800 dark:bg-gray-900 rounded-booking-lg shadow-booking border-2 border-dashed p-12 text-center cursor-pointer transition-all duration-300 hover:scale-[1.02]
           ${isDragActive && !isDragReject 
-            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+            ? 'border-stroer-500 bg-stroer-900/20 shadow-booking-lg' 
             : isDragReject 
-            ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-            : 'border-gray-300 hover:border-gray-400 dark:border-gray-600 dark:hover:border-gray-500'
+            ? 'border-red-500 bg-red-900/20'
+            : 'border-gray-600 hover:border-stroer-400 dark:border-gray-500 dark:hover:border-stroer-400'
           }
           ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
         `}
       >
         <input {...getInputProps()} />
         
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center gap-6">
           {isLoading ? (
             <>
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-              <p className="text-gray-600 dark:text-gray-300">
-                Excel-Datei wird verarbeitet...
-              </p>
+              <div className="w-16 h-16 bg-stroer-500 rounded-full flex items-center justify-center">
+                <Loader2 className="h-8 w-8 text-white animate-spin" />
+              </div>
+              <div className="space-y-2">
+                <p className="text-lg font-semibold text-gray-100 dark:text-gray-100">
+                  Excel-Datei wird verarbeitet...
+                </p>
+                <p className="text-sm text-gray-400 dark:text-gray-400">
+                  Bitte warten Sie einen Moment
+                </p>
+              </div>
             </>
           ) : isDragReject ? (
             <>
-              <AlertCircle className="h-12 w-12 text-red-500" />
-              <p className="text-red-600 dark:text-red-400 font-medium">
-                Ungültiger Dateityp
-              </p>
-              <p className="text-sm text-red-500">
-                Nur Excel-Dateien (.xlsx, .xls, .xlsm) sind erlaubt
-              </p>
+              <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center">
+                <AlertCircle className="h-8 w-8 text-white" />
+              </div>
+              <div className="space-y-2">
+                <p className="text-lg font-semibold text-red-400 dark:text-red-400">
+                  Ungültiger Dateityp
+                </p>
+                <p className="text-sm text-red-300 dark:text-red-300">
+                  Nur Excel-Dateien (.xlsx, .xls, .xlsm) sind erlaubt
+                </p>
+              </div>
             </>
           ) : (
             <>
-              {isDragActive ? (
-                <Upload className="h-12 w-12 text-blue-500" />
-              ) : (
-                <FileText className="h-12 w-12 text-gray-400" />
-              )}
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center transition-colors ${
+                isDragActive 
+                  ? 'bg-stroer-500' 
+                  : 'bg-gray-700 dark:bg-gray-600'
+              }`}>
+                {isDragActive ? (
+                  <Upload className="h-10 w-10 text-white" />
+                ) : (
+                  <FileText className="h-10 w-10 text-gray-400 dark:text-gray-400" />
+                )}
+              </div>
               
-              <div className="space-y-2">
-                <p className="text-lg font-medium text-gray-700 dark:text-gray-200">
-                  {isDragActive 
-                    ? 'Excel-Datei hier ablegen...' 
-                    : 'Excel-Datei hochladen'
-                  }
-                </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Drag & Drop oder klicken Sie hier
-                </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">
-                  Unterstützte Formate: .xlsx, .xls, .xlsm (max. 20MB)
-                </p>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xl font-semibold text-gray-100 dark:text-gray-100 mb-2">
+                    {isDragActive 
+                      ? 'Excel-Datei hier ablegen...' 
+                      : 'Excel-Datei hochladen'
+                    }
+                  </p>
+                  <p className="text-base text-gray-400 dark:text-gray-400">
+                    Drag & Drop oder klicken Sie hier, um Ihre Datei auszuwählen
+                  </p>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center justify-center gap-2 text-sm text-gray-400 dark:text-gray-400">
+                    <span className="w-2 h-2 bg-stroer-500 rounded-full"></span>
+                    Unterstützte Formate: .xlsx, .xls, .xlsm
+                  </div>
+                  <div className="flex items-center justify-center gap-2 text-sm text-gray-400 dark:text-gray-400">
+                    <span className="w-2 h-2 bg-stroer-500 rounded-full"></span>
+                    Maximale Dateigröße: 20MB
+                  </div>
+                </div>
+                
+                <div className="bg-amber-900/20 border border-amber-700/50 rounded-booking-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="text-amber-400 dark:text-amber-400 text-lg">⚠️</span>
+                    <div className="text-sm">
+                      <p className="font-medium text-amber-200 dark:text-amber-200 mb-1">
+                        Wichtiger Hinweis
+                      </p>
+                      <p className="text-amber-300 dark:text-amber-300">
+                        Nur Tages-Aggregation wird unterstützt. Stunden-Daten werden automatisch auf Tagesebene gruppiert.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </>
           )}

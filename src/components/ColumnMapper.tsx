@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Settings, ChevronDown, ChevronUp, MapPin } from 'lucide-react';
+import { Settings, ChevronDown, ChevronUp, MapPin, RefreshCw } from 'lucide-react';
 
 interface ColumnMapperProps {
   data: any[][];
@@ -32,8 +32,8 @@ const COLUMN_MAPPINGS = [
   
   // Dimensionen
   { key: 'network', label: 'Network', category: 'Dimensionen', icon: '🌐', required: false },
-  { key: 'region', label: 'Region', category: 'Dimensionen', icon: '🗺️', required: false },
-  { key: 'city', label: 'City', category: 'Dimensionen', icon: '🏙️', required: false },
+  { key: 'region', label: 'Bundesland', category: 'Dimensionen', icon: '🗺️', required: false },
+  { key: 'city', label: 'Stadt', category: 'Dimensionen', icon: '🏙️', required: false },
   { key: 'site', label: 'Site', category: 'Dimensionen', icon: '📍', required: false },
   { key: 'screenIds', label: 'Screen IDs', category: 'Dimensionen', icon: '📺', required: false },
   { key: 'auctionType', label: 'Auction Type', category: 'Dimensionen', icon: '🎯', required: false }
@@ -228,32 +228,34 @@ export default function ColumnMapper({ data, onMappingChange }: ColumnMapperProp
   const requiredTotal = COLUMN_MAPPINGS.filter(col => col.required).length;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div className="bg-gray-800 dark:bg-gray-900 rounded-booking-lg shadow-booking border border-gray-700 dark:border-gray-600">
       {/* Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+        className="w-full flex items-center justify-between p-6 hover:bg-gray-700 dark:hover:bg-gray-800 transition-colors rounded-booking-lg"
       >
-        <div className="flex items-center gap-3">
-          <Settings className="h-5 w-5 text-blue-500" />
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 bg-stroer-500 rounded-booking flex items-center justify-center">
+            <Settings className="h-5 w-5 text-white" />
+          </div>
           <div className="text-left">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-              ⚙️ Erweiterte Spalten-Konfiguration
+            <h3 className="text-lg font-semibold text-gray-100 dark:text-gray-100">
+              Spalten-Konfiguration
             </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-gray-400 dark:text-gray-400">
               {mappedCount} von {COLUMN_MAPPINGS.length} Spalten zugeordnet
               {requiredTotal > 0 && ` • ${requiredMapped}/${requiredTotal} erforderlich`}
             </p>
           </div>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           {mappedCount > 0 && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
+            <span className="badge badge-success">
               {mappedCount} erkannt
             </span>
           )}
-          <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+          <span className="text-sm text-gray-400 dark:text-gray-400 font-medium">
             {isExpanded ? 'Einklappen' : 'Konfigurieren'}
           </span>
           {isExpanded ? (
@@ -266,38 +268,39 @@ export default function ColumnMapper({ data, onMappingChange }: ColumnMapperProp
 
       {/* Content */}
       {isExpanded && (
-        <div className="border-t border-gray-200 dark:border-gray-700 p-4">
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
-            <div className="flex items-start gap-3">
-              <MapPin className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+        <div className="border-t border-gray-700 dark:border-gray-600 p-6">
+          <div className="bg-stroer-900/20 border border-stroer-700/50 rounded-booking-lg p-4 mb-6">
+            <div className="flex items-start gap-4">
+              <MapPin className="h-5 w-5 text-stroer-400 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
-                <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+                <h4 className="text-sm font-semibold text-stroer-200 dark:text-stroer-200 mb-2">
                   Erweiterte Spalten-Konfiguration
                 </h4>
-                <p className="text-sm text-blue-700 dark:text-blue-300">
+                <p className="text-sm text-stroer-300 dark:text-stroer-300">
                   Falls Filter oder Diagramme nicht korrekt funktionieren, können Sie hier die automatische Spalten-Zuordnung 
                   manuell anpassen. Normalerweise ist keine Änderung erforderlich.
                 </p>
               </div>
               <button
                 onClick={resetAllMappings}
-                className="px-3 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                className="btn-secondary py-2 px-4 text-sm flex items-center gap-2"
               >
+                <RefreshCw className="h-4 w-4" />
                 Reset
               </button>
             </div>
           </div>
 
           {/* Debug: Verfügbare Spalten */}
-          <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+          <div className="mb-6 p-4 bg-gray-700 dark:bg-gray-800 rounded-booking-lg">
+            <h4 className="text-sm font-semibold text-gray-100 dark:text-gray-100 mb-3">
               Verfügbare Spalten in Ihrer Excel-Datei:
             </h4>
             <div className="flex flex-wrap gap-2">
               {headers.map((header: string, index: number) => (
                 <span
                   key={index}
-                  className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200"
+                  className="inline-flex items-center px-3 py-1.5 rounded-booking text-xs font-medium bg-gray-600 dark:bg-gray-700 text-gray-200 dark:text-gray-200"
                 >
                   {index}: {header || `Spalte ${index + 1}`}
                 </span>
@@ -305,58 +308,56 @@ export default function ColumnMapper({ data, onMappingChange }: ColumnMapperProp
             </div>
           </div>
 
-
-
           {/* Mapping Interface */}
           {Object.entries(categorizedMappings).map(([category, mappings]) => (
-            <div key={category} className="mb-6">
-              <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-3 border-b border-gray-200 dark:border-gray-600 pb-2">
+            <div key={category} className="mb-8">
+              <h4 className="text-lg font-semibold text-gray-100 dark:text-gray-100 mb-4 border-b border-gray-700 dark:border-gray-600 pb-3">
                 {category}
               </h4>
               
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {mappings.map((mapping) => {
                   const currentIndex = finalMapping[mapping.key];
                   const detectionStatus = getDetectionStatus(mapping.key);
                   const isManuallySet = manualMapping[mapping.key] !== undefined;
                   
                   return (
-                    <div key={mapping.key} className="flex items-center gap-4 p-3 border border-gray-200 dark:border-gray-600 rounded-lg">
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <span className="text-lg">{mapping.icon}</span>
+                    <div key={mapping.key} className="flex items-center gap-4 p-4 border border-gray-700 dark:border-gray-600 rounded-booking-lg hover:bg-gray-700 dark:hover:bg-gray-800 transition-colors">
+                      <div className="flex items-center gap-4 min-w-0 flex-1">
+                        <span className="text-2xl">{mapping.icon}</span>
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-gray-900 dark:text-white">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="font-semibold text-gray-100 dark:text-gray-100">
                               {mapping.label}
                             </span>
                             {mapping.required && (
-                              <span className="text-xs px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded">
+                              <span className="badge badge-error">
                                 Erforderlich
                               </span>
                             )}
                             {detectionStatus.type === 'auto' && (
-                              <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded">
+                              <span className="badge badge-success">
                                 Auto
                               </span>
                             )}
                             {detectionStatus.type === 'manual' && (
-                              <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded">
+                              <span className="badge badge-info">
                                 Manuell
                               </span>
                             )}
                             {detectionStatus.type === 'none' && (
-                              <span className="text-xs px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded">
+                              <span className="badge badge-warning">
                                 Nicht erkannt
                               </span>
                             )}
                           </div>
                           {currentIndex !== -1 && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            <p className="text-xs text-gray-400 dark:text-gray-400 truncate">
                               Beispiel: {getColumnPreview(currentIndex)}
                             </p>
                           )}
                           {detectionStatus.type === 'auto' && currentIndex !== -1 && (
-                            <p className="text-xs text-green-600 dark:text-green-400">
+                            <p className="text-xs text-green-400 dark:text-green-400 mt-1">
                               Automatisch erkannt: "{headers[currentIndex]}"
                               {(() => {
                                 const quality = getDetectionQuality(mapping.key, currentIndex);
@@ -370,11 +371,11 @@ export default function ColumnMapper({ data, onMappingChange }: ColumnMapperProp
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-4">
                         <select
                           value={currentIndex}
                           onChange={(e) => handleManualMapping(mapping.key, parseInt(e.target.value))}
-                          className="text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                          className="input-field py-2 px-3 text-sm min-w-[200px]"
                         >
                           <option value={-1}>Nicht zugeordnet</option>
                           {headers.map((header: string, index: number) => (
@@ -384,14 +385,14 @@ export default function ColumnMapper({ data, onMappingChange }: ColumnMapperProp
                           ))}
                         </select>
                         
-                        <div className={`w-3 h-3 rounded-full ${
+                        <div className={`w-4 h-4 rounded-full ${
                           currentIndex !== -1 
                             ? detectionStatus.type === 'auto'
                               ? 'bg-green-500'
-                              : 'bg-blue-500'
+                              : 'bg-stroer-500'
                             : mapping.required 
                             ? 'bg-red-500' 
-                            : 'bg-gray-300 dark:bg-gray-600'
+                            : 'bg-gray-600 dark:bg-gray-500'
                         }`} />
                       </div>
                     </div>

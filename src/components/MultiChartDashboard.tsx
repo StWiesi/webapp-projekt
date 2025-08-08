@@ -14,7 +14,7 @@ import {
 } from 'recharts';
 import { format, parseISO, isValid } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { TrendingUp, BarChart3, Calendar } from 'lucide-react';
+import { TrendingUp, BarChart3, Calendar, BarChart4 } from 'lucide-react';
 
 
 interface MultiChartDashboardProps {
@@ -46,10 +46,10 @@ interface MultiChartDashboardProps {
 }
 
 const METRICS = [
-  { key: 'cost', label: 'Außenumsatz', color: '#ef4444', icon: '💰', unit: '€', type: 'absolute', showTotal: true },
-  { key: 'total_impressions', label: 'Impressions', color: '#3b82f6', icon: '👁️', unit: '', type: 'absolute', showTotal: true },
-  { key: 'plays', label: 'Plays', color: '#10b981', icon: '▶️', unit: '', type: 'absolute', showTotal: true },
-  { key: 'auction_wins', label: 'Scheduled Plays', color: '#f59e0b', icon: '🏆', unit: '', type: 'absolute', showTotal: true },
+  { key: 'cost', label: 'Außenumsatz', color: '#FF6B00', icon: '💰', unit: '€', type: 'absolute', showTotal: true },
+  { key: 'total_impressions', label: 'Impressions', color: '#003366', icon: '👁️', unit: '', type: 'absolute', showTotal: true },
+  { key: 'plays', label: 'Plays', color: '#00a699', icon: '▶️', unit: '', type: 'absolute', showTotal: true },
+  { key: 'auction_wins', label: 'Scheduled Plays', color: '#ffb020', icon: '🏆', unit: '', type: 'absolute', showTotal: true },
   { key: 'ad_requests', label: 'Ad Requests', color: '#8b5cf6', icon: '📊', unit: '', type: 'absolute', showTotal: true },
   { key: 'coverage', label: 'Coverage', color: '#06b6d4', icon: '🎯', unit: '%', type: 'percentage', showTotal: false },
   { key: 'play_rate', label: 'Play Rate', color: '#84cc16', icon: '📈', unit: '%', type: 'percentage', showTotal: false }
@@ -98,125 +98,124 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
 
   // Filtere und aggregiere Daten
   const chartData = useMemo(() => {
-    if (columnIndices.date === -1) return [];
+    if (!rows || rows.length === 0 || columnIndices.date === -1) return [];
 
-    // Filtere Daten basierend auf aktiven Filtern
+    // Filtere Zeilen basierend auf den aktiven Filtern
     const filteredRows = rows.filter(row => {
-      // Network Filter
-      if (filters.network.length > 0 && columnIndices.network !== -1) {
-        const networkValue = row[columnIndices.network]?.toString() || '';
-        if (!filters.network.includes(networkValue)) return false;
+      for (const [filterKey, filterValues] of Object.entries(filters)) {
+        if (filterValues.length === 0) continue;
+        
+        const columnIndex = columnIndices[filterKey as keyof typeof columnIndices];
+        if (columnIndex === -1) continue;
+        
+        const rowValue = row[columnIndex]?.toString() || '';
+        if (!filterValues.includes(rowValue)) {
+          return false;
+        }
       }
-
-      // Region Filter
-      if (filters.region.length > 0 && columnIndices.region !== -1) {
-        const regionValue = row[columnIndices.region]?.toString() || '';
-        if (!filters.region.includes(regionValue)) return false;
-      }
-
-      // City Filter
-      if (filters.city.length > 0 && columnIndices.city !== -1) {
-        const cityValue = row[columnIndices.city]?.toString() || '';
-        if (!filters.city.includes(cityValue)) return false;
-      }
-
-      // Site Filter
-      if (filters.site.length > 0 && columnIndices.site !== -1) {
-        const siteValue = row[columnIndices.site]?.toString() || '';
-        if (!filters.site.includes(siteValue)) return false;
-      }
-
-      // Screen IDs Filter
-      if (filters.screenIds.length > 0 && columnIndices.screen_ids !== -1) {
-        const screenValue = row[columnIndices.screen_ids]?.toString() || '';
-        if (!filters.screenIds.includes(screenValue)) return false;
-      }
-
-      // Auction Type Filter
-      if (filters.auctionType.length > 0 && columnIndices.auction_type !== -1) {
-        const auctionValue = row[columnIndices.auction_type]?.toString() || '';
-        if (!filters.auctionType.includes(auctionValue)) return false;
-      }
-
       return true;
     });
 
-    // Gruppiere nach Datum und aggregiere Metriken
-    const dateGroups: { [key: string]: any } = {};
+    if (filteredRows.length === 0) return [];
+
+    // Gruppiere nach Datum
+    const groupedByDate = new Map<string, any>();
 
     filteredRows.forEach(row => {
-      const dateValue = row[columnIndices.date];
+      const dateIndex = columnIndices.date;
+      let dateValue = row[dateIndex];
       if (!dateValue) return;
 
-      // Versuche verschiedene Datum-Formate zu parsen
+      // Konvertiere verschiedene Datumsformate
       let parsedDate: Date | null = null;
       
-      try {
-        // ISO Format (2024-01-15)
-        if (typeof dateValue === 'string' && dateValue.includes('-')) {
-          parsedDate = parseISO(dateValue);
-        }
-        // Excel Datum (Zahl)
-        else if (typeof dateValue === 'number') {
-          // Excel Datum beginnt am 1. Januar 1900
-          parsedDate = new Date((dateValue - 25569) * 86400 * 1000);
-        }
-        // String Datum
-        else {
+      if (typeof dateValue === 'string') {
+        // Versuche verschiedene Datumsformate
+        try {
+          // ISO Format
+          if (dateValue.includes('-')) {
+            parsedDate = parseISO(dateValue);
+          }
+          // Deutsches Format (DD.MM.YYYY)
+          else if (dateValue.includes('.')) {
+            const [day, month, year] = dateValue.split('.');
+            parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+          }
+          // Andere Formate
+          else {
+            parsedDate = new Date(dateValue);
+          }
+        } catch {
+          // Fallback
           parsedDate = new Date(dateValue);
         }
-      } catch (e) {
-        return;
+      } else if (typeof dateValue === 'number') {
+        // Excel Datum
+        parsedDate = new Date((dateValue - 25569) * 86400 * 1000);
+      } else if (dateValue instanceof Date) {
+        parsedDate = dateValue;
       }
 
       if (!parsedDate || !isValid(parsedDate)) return;
 
       const dateKey = format(parsedDate, 'yyyy-MM-dd');
-
-      if (!dateGroups[dateKey]) {
-        dateGroups[dateKey] = {
+      
+      if (!groupedByDate.has(dateKey)) {
+        groupedByDate.set(dateKey, {
           date: dateKey,
-          displayDate: format(parsedDate, 'dd.MM.yyyy', { locale: de }),
+          displayDate: format(parsedDate, 'dd.MM', { locale: de }),
           cost: 0,
           total_impressions: 0,
           plays: 0,
           auction_wins: 0,
-          ad_requests: 0,
-          count: 0
-        };
+          ad_requests: 0
+        });
       }
 
-      // Addiere Basis-Metriken
-      const baseMetrics = ['cost', 'total_impressions', 'plays', 'auction_wins', 'ad_requests'];
-      baseMetrics.forEach(metric => {
-        const index = columnIndices[metric as keyof typeof columnIndices];
-        if (index !== -1) {
-          const value = parseFloat(row[index]) || 0;
-          dateGroups[dateKey][metric] += value;
-        }
-      });
-
-      dateGroups[dateKey].count++;
+      const group = groupedByDate.get(dateKey);
+      
+      // Summiere Metriken
+      if (columnIndices.cost !== -1) {
+        group.cost += parseFloat(row[columnIndices.cost]) || 0;
+      }
+      if (columnIndices.total_impressions !== -1) {
+        group.total_impressions += parseFloat(row[columnIndices.total_impressions]) || 0;
+      }
+      if (columnIndices.plays !== -1) {
+        group.plays += parseFloat(row[columnIndices.plays]) || 0;
+      }
+      if (columnIndices.auction_wins !== -1) {
+        group.auction_wins += parseFloat(row[columnIndices.auction_wins]) || 0;
+      }
+      if (columnIndices.ad_requests !== -1) {
+        group.ad_requests += parseFloat(row[columnIndices.ad_requests]) || 0;
+      }
     });
 
-    // Konvertiere zu Array, sortiere nach Datum und berechne abgeleitete Metriken
-    return Object.values(dateGroups)
-      .map(item => ({
-        ...item,
-        // Berechnete Metriken
-        play_rate: item.auction_wins > 0 ? (item.plays / item.auction_wins) * 100 : 0,
-        coverage: item.ad_requests > 0 ? (item.plays / item.ad_requests) * 100 : 0
-      }))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [rows, columnIndices, filters]);
+    // Berechne abgeleitete Metriken
+    const result = Array.from(groupedByDate.values()).map(group => ({
+      ...group,
+      coverage: group.ad_requests > 0 ? (group.plays / group.ad_requests) * 100 : 0,
+      play_rate: group.auction_wins > 0 ? (group.plays / group.auction_wins) * 100 : 0
+    }));
+
+    // Sortiere nach Datum
+    return result.sort((a, b) => a.date.localeCompare(b.date));
+  }, [rows, filters, columnIndices]);
 
   const formatValue = (value: number, unit: string) => {
     if (unit === '€') {
-      return `€${value.toLocaleString('de-DE', { minimumFractionDigits: 2 })}`;
+      return new Intl.NumberFormat('de-DE', { 
+        style: 'currency', 
+        currency: 'EUR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(value);
     } else if (unit === '%') {
-      return `${value.toFixed(2)}%`;
+      return `${value.toFixed(1)}%`;
+    } else {
+      return new Intl.NumberFormat('de-DE').format(Math.round(value));
     }
-    return value.toLocaleString('de-DE');
   };
 
   const updateChartMetric = (chartIndex: number, metricKey: string) => {
@@ -224,8 +223,8 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
     newMetrics[chartIndex] = metricKey;
     setChartMetrics(newMetrics);
     
-    // Synchronisiere mit der Karte wenn es die erste Metrik ist
-    if (chartIndex === 0 && onMapMetricChange) {
+    // Synchronisiere mit der Karte
+    if (onMapMetricChange && chartIndex === 0) {
       onMapMetricChange(metricKey);
     }
   };
@@ -238,13 +237,15 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
 
   if (chartData.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8">
+      <div className="bg-gray-800 dark:bg-gray-900 rounded-booking-lg shadow-booking border border-gray-700 dark:border-gray-600 p-8">
         <div className="text-center">
-          <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+          <div className="w-16 h-16 bg-gray-700 dark:bg-gray-600 rounded-booking flex items-center justify-center mx-auto mb-6">
+            <Calendar className="h-8 w-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-100 dark:text-gray-100 mb-3">
             Keine Daten für Diagramme verfügbar
           </h3>
-          <p className="text-gray-500 dark:text-gray-400">
+          <p className="text-gray-400 dark:text-gray-400">
             Stellen Sie sicher, dass Ihre Excel-Datei eine Datum-Spalte und Metriken-Spalten enthält.
           </p>
         </div>
@@ -263,13 +264,25 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
           const ChartComponent = selectedType === 'line' ? LineChart : BarChart;
 
           return (
-            <div key={chartIndex} className="bg-white dark:bg-gray-800 rounded-lg shadow">
+            <div key={chartIndex} className="bg-gray-800 dark:bg-gray-900 rounded-booking-lg shadow-booking border border-gray-700 dark:border-gray-600">
               {/* Chart Controls */}
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                <div className="space-y-4">
+              <div className="p-6 border-b border-gray-700 dark:border-gray-600">
+                <div className="space-y-6">
                   <div className="flex items-center justify-between">
-                    <div className="h-6"></div>
-                    <div className="flex gap-1">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-stroer-500 rounded-booking flex items-center justify-center">
+                        <BarChart4 className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-100 dark:text-gray-100">
+                          Datenanalyse
+                        </h3>
+                        <p className="text-sm text-gray-400 dark:text-gray-400">
+                          Interaktive Visualisierung Ihrer Metriken
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
                       {CHART_TYPES.map((type) => {
                         const Icon = type.icon;
                         return (
@@ -277,14 +290,14 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
                             key={type.key}
                             onClick={() => updateChartType(chartIndex, type.key)}
                             className={`
-                              p-2 rounded transition-all
+                              p-3 rounded-booking transition-all duration-200
                               ${selectedType === type.key
-                                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                ? 'bg-stroer-500 text-white shadow-booking'
+                                : 'bg-gray-700 dark:bg-gray-600 text-gray-300 dark:text-gray-300 hover:bg-gray-600 dark:hover:bg-gray-500'
                               }
                             `}
                           >
-                            <Icon className="h-4 w-4" />
+                            <Icon className="h-5 w-5" />
                           </button>
                         );
                       })}
@@ -293,23 +306,23 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
 
                   {/* Metrik Auswahl */}
                   <div>
-                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2 block">
-                      Metrik
+                    <label className="text-sm font-semibold text-gray-300 dark:text-gray-300 mb-3 block">
+                      Metrik auswählen
                     </label>
-                    <div className="grid grid-cols-2 gap-1">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                       {METRICS.map((metric) => (
                         <button
                           key={metric.key}
                           onClick={() => updateChartMetric(chartIndex, metric.key)}
                           className={`
-                            flex items-center gap-2 px-2 py-1.5 rounded text-xs font-medium transition-all
+                            flex items-center gap-3 px-4 py-3 rounded-booking text-sm font-medium transition-all duration-200
                             ${selectedMetric === metric.key
-                              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500'
-                              : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                              ? 'bg-stroer-500 text-white shadow-booking'
+                              : 'bg-gray-700 dark:bg-gray-600 text-gray-300 dark:text-gray-300 hover:bg-gray-600 dark:hover:bg-gray-500'
                             }
                           `}
                         >
-                          <span>{metric.icon}</span>
+                          <span className="text-lg">{metric.icon}</span>
                           <span className="truncate">{metric.label}</span>
                         </button>
                       ))}
@@ -319,22 +332,22 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
               </div>
 
               {/* Chart */}
-              <div className="p-4">
-                <div className="h-80">
+              <div className="p-6">
+                <div className="h-96">
                   <ResponsiveContainer width="100%" height="100%">
                     <ChartComponent data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                       <XAxis 
                         dataKey="displayDate"
-                        stroke="#6b7280"
-                        fontSize={10}
+                        stroke="#9ca3af"
+                        fontSize={12}
                         angle={-45}
                         textAnchor="end"
-                        height={60}
+                        height={80}
                       />
                       <YAxis 
-                        stroke="#6b7280"
-                        fontSize={10}
+                        stroke="#9ca3af"
+                        fontSize={12}
                         domain={metricInfo?.type === 'percentage' ? [0, 100] : [0, 'dataMax']}
                         tickFormatter={(value) => {
                           if (metricInfo?.unit === '€') {
@@ -347,10 +360,12 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
                       />
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: 'white',
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '8px',
-                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                          backgroundColor: '#1f2937',
+                          border: '1px solid #374151',
+                          borderRadius: '12px',
+                          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
+                          padding: '12px',
+                          color: '#f9fafb'
                         }}
                         formatter={(value: number) => [
                           formatValue(value, metricInfo?.unit || ''), 
@@ -363,15 +378,15 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
                           type="monotone"
                           dataKey={selectedMetric}
                           stroke={metricInfo?.color}
-                          strokeWidth={2}
-                          dot={{ fill: metricInfo?.color, strokeWidth: 2, r: 3 }}
-                          activeDot={{ r: 5, stroke: metricInfo?.color, strokeWidth: 2 }}
+                          strokeWidth={3}
+                          dot={{ fill: metricInfo?.color, strokeWidth: 2, r: 4 }}
+                          activeDot={{ r: 6, stroke: metricInfo?.color, strokeWidth: 2 }}
                         />
                       ) : (
                         <Bar
                           dataKey={selectedMetric}
                           fill={metricInfo?.color}
-                          radius={[2, 2, 0, 0] as [number, number, number, number]}
+                          radius={[4, 4, 0, 0] as [number, number, number, number]}
                         />
                       )}
                     </ChartComponent>
@@ -380,11 +395,11 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
 
                 {/* Mini Stats */}
                 {chartData.length > 0 && (
-                  <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                  <div className="mt-6 grid grid-cols-2 gap-4">
                     {metricInfo?.showTotal ? (
-                      <div className="bg-gray-50 dark:bg-gray-700 rounded p-2">
-                        <p className="text-gray-500 dark:text-gray-400">Gesamt</p>
-                        <p className="font-bold text-gray-900 dark:text-white">
+                      <div className="bg-gray-700 dark:bg-gray-600 rounded-booking-lg p-4">
+                        <p className="text-sm text-gray-400 dark:text-gray-400 mb-1">Gesamt</p>
+                        <p className="text-xl font-bold text-gray-100 dark:text-gray-100">
                           {formatValue(
                             chartData.reduce((sum, item) => sum + item[selectedMetric], 0),
                             metricInfo?.unit || ''
@@ -392,16 +407,16 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
                         </p>
                       </div>
                     ) : (
-                      <div className="bg-gray-50 dark:bg-gray-700 rounded p-2 opacity-50">
-                        <p className="text-gray-500 dark:text-gray-400">Gesamt</p>
-                        <p className="font-bold text-gray-900 dark:text-white text-xs">
+                      <div className="bg-gray-700 dark:bg-gray-600 rounded-booking-lg p-4 opacity-50">
+                        <p className="text-sm text-gray-400 dark:text-gray-400 mb-1">Gesamt</p>
+                        <p className="text-xl font-bold text-gray-100 dark:text-gray-100">
                           N/A
                         </p>
                       </div>
                     )}
-                    <div className="bg-gray-50 dark:bg-gray-700 rounded p-2">
-                      <p className="text-gray-500 dark:text-gray-400">Ø</p>
-                      <p className="font-bold text-gray-900 dark:text-white">
+                    <div className="bg-gray-700 dark:bg-gray-600 rounded-booking-lg p-4">
+                      <p className="text-sm text-gray-400 dark:text-gray-400 mb-1">Durchschnitt</p>
+                      <p className="text-xl font-bold text-gray-100 dark:text-gray-100">
                         {formatValue(
                           chartData.reduce((sum, item) => sum + item[selectedMetric], 0) / chartData.length,
                           metricInfo?.unit || ''
