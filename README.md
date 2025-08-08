@@ -1,155 +1,145 @@
-# Analytics - Digital-out-of-Home Inventory Analysis
+# Digital-out-of-Home Datenanalyse Webapp
 
-Eine moderne Webanwendung zur Analyse von Digital-out-of-Home Daten mit interaktiven Diagrammen, Filtern und einer Deutschland-Karte.
+Eine moderne Next.js Webanwendung zur Analyse von Digital-out-of-Home Daten mit interaktiven Diagrammen, Filtern und einer Deutschland-Karte.
 
 ## 🚀 Features
 
 ### 📊 Datenanalyse
-- **Interaktive Diagramme**: Line- und Bar-Charts mit individueller Metrik-Auswahl
-- **Berechnete Metriken**: Play Rate und Coverage werden automatisch berechnet
-- **Erweiterte Filter**: Für Datum, Network, Auction Type, Region, City, Site und Screen IDs
-- **Datumsfilter**: Inklusive Start- und Enddatum-Filterung
-- **Scroll-Position**: Keine Positionsverluste beim Filtern
-- **Rohdaten-Tabelle**: Vollständige Datenansicht mit Such- und Sortierfunktionen
+- **Excel-Datei Upload** (bis 50MB) mit Progress-Bar
+- **Interaktive Diagramme** (Liniendiagramm, Balkendiagramm)
+- **Histogramm** mit Dimension- und Metrik-Auswahl
+- **Deutschland-Karte** mit 3D-Säulen für Städte
+- **Rohdaten-Tabelle** mit Sortierung und Filterung
+- **Automatische Spaltenzuordnung** mit manueller Anpassung
 
-### 🗺️ Deutschland-Karte
-- **Bundesländer-Einfärbung**: Regionale Datenvisualisierung mit Kreisen
-- **Städte-3D-Säulen**: Dynamische 3D-Säulen mit Höhen basierend auf Metrik-Werten
-- **Site-Marker**: Präzise Markierungen für einzelne Standorte
-- **Zoom-Funktionalität**: Responsive Elemente die sich an Zoom anpassen
-- **Tooltips**: Detaillierte Informationen bei Klick (ohne Datensatz-Anzahl)
-- **Filter-Synchronisation**: Map reagiert auf alle Filter-Änderungen
+### 🎯 Metriken
+- **Außenumsatz** (Cost)
+- **Impressions** (Total Impressions)
+- **Plays** (Wiedergaben)
+- **Scheduled Plays** (Auction Wins)
+- **Ad Requests** (Anfragen)
+- **Coverage** (Abdeckung in %)
+- **Play Rate** (Wiedergaberate in %)
 
-### 📁 File-Management
-- **Excel-Upload**: Drag & Drop für .xlsx und .csv Dateien
-- **FileInfo-Komponente**: Übersicht über aktuelle Datei
-- **File-Austausch**: Einfaches Hochladen neuer Dateien
-- **Statistiken**: Zeilen- und Spaltenanzahl
-- **Report-Link**: Direkter Zugang zum Ströer Core Reporting
+### 🔧 Filter & Navigation
+- **Datum-Filter** (Start- und Enddatum inklusive)
+- **Network-Filter**
+- **Auction Type-Filter**
+- **Bundesland-Filter**
+- **Stadt-Filter**
+- **Site-Filter**
+- **Screen ID-Filter**
+- **Scroll-Position-Erhaltung** bei allen Änderungen
 
-### 🎨 Design
-- **Modernes UI**: Booking.com Look & Feel mit Ströer-Farben
-- **Dark Mode**: Standardmäßig aktiviert
-- **Responsive Layout**: Optimiert für alle Bildschirmgrößen
-- **Minimalistisches Interface**: Klare Startseite ohne Ablenkung
-- **Professionelles Logo**: "Analytics" Branding
+### 🗺️ Karten-Features
+- **3D-Säulen** für Städte mit proportionaler Höhe
+- **Interaktive Tooltips** mit Metrik-Informationen
+- **Zoom und Pan** mit persistierenden 3D-Effekten
+- **Bundesland-Einfärbung** basierend auf Metriken
+- **Responsive Design** für alle Bildschirmgrößen
+
+### 📱 Benutzerfreundlichkeit
+- **Progress-Bar** für Datei-Uploads mit Zeit-Schätzung
+- **Responsive Design** für Desktop, Tablet und Mobile
+- **Dunkles Theme** mit konsistentem Styling
+- **Fehlerbehandlung** mit detaillierten Meldungen
+- **Performance-Optimierung** für große Datasets
 
 ## 🛠️ Technologie-Stack
 
-- **Frontend**: Next.js 14, React 18, TypeScript
-- **Styling**: Tailwind CSS mit custom Design System
-- **Charts**: Recharts für interaktive Diagramme
-- **Maps**: Google Maps API mit GeoJSON
-- **File Processing**: XLSX für Excel-Dateien
-- **Icons**: Lucide React
-- **Date Handling**: date-fns
+- **Next.js 14** - React Framework
+- **TypeScript** - Typsichere Entwicklung
+- **Tailwind CSS** - Utility-First CSS Framework
+- **Recharts** - Interaktive Diagramme
+- **Google Maps API** - Kartendarstellung
+- **XLSX** - Excel-Datei Verarbeitung
+- **Lucide React** - Icons
 
 ## 📦 Installation
 
-1. **Repository klonen**
-   ```bash
-   git clone <repository-url>
-   cd webapp-projekt
-   ```
-
-2. **Dependencies installieren**
-   ```bash
-   npm install
-   ```
-
-3. **Umgebungsvariablen konfigurieren**
-   ```bash
-   cp env.example .env.local
-   ```
-   
-   Füge deine Google Maps API Key hinzu:
-   ```
-   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_api_key_here
-   ```
-
-4. **Entwicklungsserver starten**
-   ```bash
-   npm run dev
-   ```
-
-5. **Browser öffnen**
-   ```
-   http://localhost:3000
-   ```
-
-## 🔧 Google Maps Setup
-
-1. **Google Cloud Console** öffnen
-2. **Maps JavaScript API** aktivieren
-3. **API Key** erstellen
-4. **API Key** in `.env.local` eintragen
-
-Detaillierte Anweisungen findest du in `GOOGLE_MAPS_SETUP.md`.
-
-## 📁 Projektstruktur
-
-```
-src/
-├── app/                    # Next.js App Router
-│   ├── globals.css        # Global Styles
-│   ├── layout.tsx         # Root Layout
-│   └── page.tsx           # Hauptseite
-├── components/            # React Komponenten
-│   ├── ui/               # UI Komponenten
-│   ├── AnalyticsFilters.tsx
-│   ├── ColumnMapper.tsx
-│   ├── CollapsibleTable.tsx
-│   ├── ErrorMessage.tsx
-│   ├── ExcelTable.tsx
-│   ├── ExcelUploader.tsx
-│   ├── FileInfo.tsx
-│   ├── GermanyMap.tsx
-│   ├── Logo.tsx
-│   └── MultiChartDashboard.tsx
-└── lib/                  # Utilities
-    └── utils.ts
+1. **Repository klonen:**
+```bash
+git clone <repository-url>
+cd webapp-projekt
 ```
 
-## 🎯 Verwendung
+2. **Dependencies installieren:**
+```bash
+npm install
+```
 
-1. **Datei hochladen**: Excel-Datei mit Digital-out-of-Home Daten hochladen
-2. **Spalten mappen**: Automatische oder manuelle Spaltenzuordnung
-3. **Filter anwenden**: Daten nach verschiedenen Dimensionen filtern
-4. **Analyse durchführen**: Interaktive Charts und Karten erkunden
-5. **Rohdaten einsehen**: Vollständige Datenansicht in der Tabelle
+3. **Umgebungsvariablen konfigurieren:**
+```bash
+cp env.example .env.local
+```
 
-## 📊 Unterstützte Metriken
+4. **Google Maps API Key hinzufügen:**
+```bash
+# In .env.local
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+```
 
-- **Außenumsatz** (cost)
-- **Impressions** (total_impressions)
-- **Plays** (plays)
-- **Scheduled Plays** (auction_wins)
-- **Ad Requests** (ad_requests)
-- **Coverage** (automatisch berechnet)
-- **Play Rate** (automatisch berechnet)
+5. **Entwicklungsserver starten:**
+```bash
+npm run dev
+```
 
-## 🗺️ Karten-Level
+## 🔧 Konfiguration
 
-- **Bundesländer**: Regionale Einfärbung mit dynamischen Kreisen
-- **Städte**: Beeindruckende 3D-Säulen mit CSS-Transformationen
-- **Sites**: Präzise Marker für Einzelstandorte
+### Google Maps API Setup
+1. Google Cloud Console öffnen
+2. Neues Projekt erstellen oder bestehendes auswählen
+3. Maps JavaScript API aktivieren
+4. API Key erstellen
+5. Key in `.env.local` eintragen
 
-## 🎛️ Filter-System
+### Excel-Datei Format
+Die Anwendung unterstützt folgende Spalten-Header:
+- **Datum:** `date`, `datum`
+- **Kosten:** `cost`, `kosten`, `außenumsatz`
+- **Impressions:** `impression`, `impressionen`
+- **Plays:** `play`, `wiedergabe`
+- **Auction Wins:** `auction`, `auktion`, `scheduled`
+- **Ad Requests:** `request`, `anfrage`
+- **Network:** `network`, `netzwerk`
+- **Region:** `region`, `bundesland`
+- **Stadt:** `city`, `stadt`
+- **Site:** `site`
+- **Screen ID:** `screen`, `bildschirm`
 
-- **Datumsfilter**: Start- und Enddatum (inklusive)
-- **Network**: Netzwerk-Filterung
-- **Auction Type**: Auktions-Typ-Filterung  
-- **Bundesland**: Regionale Filterung
-- **Stadt**: Stadt-spezifische Filterung
-- **Site**: Standort-Filterung
-- **Screen ID**: Screen-spezifische Filterung
+## 📊 Verwendung
+
+1. **Datei hochladen:** Excel-Datei per Drag & Drop oder Dateiauswahl
+2. **Spaltenzuordnung:** Automatische Zuordnung überprüfen/anpassen
+3. **Filter setzen:** Gewünschte Filter aktivieren
+4. **Metriken auswählen:** In Diagrammen, Histogramm und Karte
+5. **Daten analysieren:** Interaktive Visualisierungen erkunden
+
+## 🎨 Features im Detail
+
+### Histogramm
+- **Dimension-Auswahl:** Network, Auction Type, Bundesland, Stadt, Site, Screen ID
+- **Metrik-Synchronisation:** Automatische Synchronisation mit anderen Komponenten
+- **Anzeige-Modi:** "Top X" oder "Alle" Werte
+- **Berechnete Metriken:** Coverage und Play Rate werden automatisch berechnet
+
+### Deutschland-Karte
+- **3D-Säulen:** Proportional zur ausgewählten Metrik
+- **Interaktive Tooltips:** Detaillierte Informationen bei Klick
+- **Zoom-Persistenz:** 3D-Effekte bleiben bei Zoom/Pan erhalten
+- **Stadt-Koordinaten:** Automatische Zuordnung für deutsche Städte
+
+### Performance
+- **Chunk-basierte Verarbeitung:** Optimiert für große Datasets
+- **Memoization:** Intelligente Caching-Strategien
+- **Lazy Loading:** Komponenten werden bei Bedarf geladen
 
 ## 🚀 Deployment
 
 ### Vercel (Empfohlen)
 1. Repository zu Vercel verbinden
-2. Umgebungsvariablen konfigurieren
-3. Deploy
+2. Umgebungsvariablen in Vercel Dashboard setzen
+3. Automatisches Deployment bei Git-Push
 
 ### Andere Plattformen
 ```bash
@@ -157,7 +147,7 @@ npm run build
 npm start
 ```
 
-## 🤝 Contributing
+## 🤝 Beitragen
 
 1. Fork erstellen
 2. Feature Branch erstellen (`git checkout -b feature/amazing-feature`)
@@ -165,10 +155,13 @@ npm start
 4. Branch pushen (`git push origin feature/amazing-feature`)
 5. Pull Request erstellen
 
-## 📄 Lizenz
+## 📝 Lizenz
 
-Dieses Projekt ist privat und nicht zur öffentlichen Nutzung bestimmt.
+Dieses Projekt ist unter der MIT Lizenz lizenziert.
 
 ## 🆘 Support
 
-Bei Fragen oder Problemen erstelle ein Issue im Repository.
+Bei Fragen oder Problemen:
+1. Issues auf GitHub erstellen
+2. Dokumentation durchsuchen
+3. Code-Beispiele in der README prüfen

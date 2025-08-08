@@ -20,30 +20,30 @@ export default function CollapsibleTable({ data, filename }: CollapsibleTablePro
       {/* Collapsible Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+        className="w-full flex items-center justify-between p-4 sm:p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
       >
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-stroer-500 rounded-booking flex items-center justify-center">
-            <TableIcon className="h-5 w-5 text-white" />
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-stroer-500 rounded-booking flex items-center justify-center flex-shrink-0">
+            <TableIcon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
           </div>
-          <div className="text-left">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <div className="text-left min-w-0 flex-1">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white text-ellipsis">
               Rohdaten-Tabelle
             </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 text-ellipsis">
               {filename} • {rowCount.toLocaleString()} Zeilen × {columnCount} Spalten
             </p>
           </div>
         </div>
         
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+        <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+          <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium">
             {isExpanded ? 'Einklappen' : 'Anzeigen'}
           </span>
           {isExpanded ? (
-            <ChevronUp className="h-5 w-5 text-gray-400" />
+            <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
           ) : (
-            <ChevronDown className="h-5 w-5 text-gray-400" />
+            <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
           )}
         </div>
       </button>

@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import ExcelUploader from '@/components/ExcelUploader';
 import MultiChartDashboard from '@/components/MultiChartDashboard';
+import HistogramChart from '@/components/HistogramChart';
 import AnalyticsFilters from '@/components/AnalyticsFilters';
 import CollapsibleTable from '@/components/CollapsibleTable';
 import ColumnMapper from '@/components/ColumnMapper';
@@ -42,7 +43,7 @@ export default function Home() {
     screenIds: -1,
     auctionType: -1
   });
-  const [selectedMapMetric, setSelectedMapMetric] = useState<string>('cost');
+  const [selectedMetric, setSelectedMetric] = useState<string>('cost');
 
   // Aktualisiere ColumnMapping wenn excelData gesetzt wird
   React.useEffect(() => {
@@ -138,9 +139,6 @@ export default function Home() {
           if (columnIndex !== -1) {
             const rowValue = row[columnIndex]?.toString() || '';
             if (!filters.city.includes(rowValue)) {
-              if (row === limitedRows[0]) {
-                console.log('Filtered out by city:', { rowValue, filters: filters.city });
-              }
               return false;
             }
           }
@@ -151,9 +149,6 @@ export default function Home() {
           if (columnIndex !== -1) {
             const rowValue = row[columnIndex]?.toString() || '';
             if (!filters.site.includes(rowValue)) {
-              if (row === limitedRows[0]) {
-                console.log('Filtered out by site:', { rowValue, filters: filters.site });
-              }
               return false;
             }
           }
@@ -164,9 +159,6 @@ export default function Home() {
           if (columnIndex !== -1) {
             const rowValue = row[columnIndex]?.toString() || '';
             if (!filters.screenIds.includes(rowValue)) {
-              if (row === limitedRows[0]) {
-                console.log('Filtered out by screenIds:', { rowValue, filters: filters.screenIds });
-              }
               return false;
             }
           }
@@ -177,9 +169,6 @@ export default function Home() {
           if (columnIndex !== -1) {
             const rowValue = row[columnIndex]?.toString() || '';
             if (!filters.auctionType.includes(rowValue)) {
-              if (row === limitedRows[0]) {
-                console.log('Filtered out by auctionType:', { rowValue, filters: filters.auctionType });
-              }
               return false;
             }
           }
@@ -235,7 +224,7 @@ export default function Home() {
       return result;
       
     } catch (error) {
-      console.error('Error in convertToObjectArray:', error);
+      handleError(error instanceof Error ? error.message : 'Fehler beim Verarbeiten der Daten');
       return [];
     }
   }, [excelData, filters, columnMapping]); // Abhängig von excelData, filters und columnMapping
@@ -321,7 +310,6 @@ export default function Home() {
       setFilters(newFilters);
       
     } catch (error) {
-      console.error('Error in handleDataLoaded:', error);
       handleError(error instanceof Error ? error.message : 'Fehler beim Verarbeiten der Daten');
     }
   };
@@ -407,60 +395,71 @@ export default function Home() {
             </div>
           </div>
         ) : (
-          <div className="flex gap-8 mx-[10%]">
-            {/* Filter Sidebar - feste Mindestbreite */}
-            <div className="w-80 flex-shrink-0">
-              <div className="sticky top-8 h-[calc(100vh-4rem)] overflow-y-auto">
-                <AnalyticsFilters
+          <div className="macbook-optimized">
+            <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 xl:gap-8">
+              {/* Filter Sidebar - responsive */}
+              <div className="w-full lg:w-80 lg:flex-shrink-0 order-1 lg:order-1">
+                <div className="lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] overflow-y-auto">
+                  {/* FileInfo - über den Filtern */}
+                  <div className="mb-4">
+                    <FileInfo
+                      filename={filename}
+                      data={excelData}
+                      onDataLoaded={handleDataLoaded}
+                      onError={handleError}
+                      onClear={handleClear}
+                    />
+                  </div>
+                  
+                  <AnalyticsFilters
+                    data={excelData}
+                    filters={filters}
+                    onFiltersChange={setFilters}
+                    columnMapping={columnMapping}
+                  />
+                </div>
+              </div>
+              
+              {/* Content Area - responsive */}
+              <div className="flex-1 space-y-4 lg:space-y-6 xl:space-y-8 min-w-0 order-2 lg:order-2">
+                {/* Charts */}
+                <MultiChartDashboard
                   data={excelData}
                   filters={filters}
-                  onFiltersChange={setFilters}
                   columnMapping={columnMapping}
+                  selectedMapMetric={selectedMetric}
+                  onMapMetricChange={setSelectedMetric}
                 />
-              </div>
-            </div>
-            
-            {/* Content Area - nimmt den verfügbaren Platz */}
-            <div className="flex-1 space-y-8 min-w-0">
-              {/* Charts */}
-              <MultiChartDashboard
-                data={excelData}
-                filters={filters}
-                columnMapping={columnMapping}
-                selectedMapMetric={selectedMapMetric}
-                onMapMetricChange={setSelectedMapMetric}
-              />
 
-              {/* Germany Map */}
-              <GermanyMap
-                data={convertToObjectArray}
-                filters={filters}
-                selectedMetric={selectedMapMetric}
-                onMetricChange={setSelectedMapMetric}
-              />
-
-              {/* Collapsible Table */}
-              <CollapsibleTable
-                data={excelData}
-                filename={filename}
-              />
-
-              {/* Column Mapping */}
-              <ColumnMapper
-                data={excelData}
-                onMappingChange={setColumnMapping}
-              />
-            </div>
-
-            {/* FileInfo - feste Mindestbreite */}
-            <div className="w-80 flex-shrink-0">
-              <div className="sticky top-8">
-                <FileInfo
-                  filename={filename}
+                {/* Histogram Chart */}
+                <HistogramChart
                   data={excelData}
-                  onDataLoaded={handleDataLoaded}
-                  onError={handleError}
-                  onClear={handleClear}
+                  filters={filters}
+                  columnMapping={columnMapping}
+                  selectedMetric={selectedMetric}
+                  onMetricChange={(metric) => {
+                    setSelectedMetric(metric);
+                  }}
+                />
+
+                {/* Germany Map */}
+                <GermanyMap
+                  data={convertToObjectArray}
+                  filters={filters}
+                  selectedMetric={selectedMetric}
+                  onMetricChange={setSelectedMetric}
+                />
+
+                {/* Collapsible Table */}
+                <CollapsibleTable
+                  data={excelData}
+                  filename={filename}
+                />
+
+                {/* Column Mapping */}
+                <ColumnMapper
+                  data={excelData}
+                  onMappingChange={setColumnMapping}
                 />
               </div>
             </div>
@@ -470,3 +469,4 @@ export default function Home() {
     </main>
   );
 }
+

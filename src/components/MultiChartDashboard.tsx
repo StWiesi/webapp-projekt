@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import {
   LineChart,
   Line,
@@ -70,20 +70,7 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
   const [chartMetrics, setChartMetrics] = useState(DEFAULT_METRICS);
   const [chartTypes, setChartTypes] = useState(['line']);
   const scrollPositionRef = useRef<number>(0);
-
-  // Speichere und stelle Scroll-Position wieder her
-  const saveScrollPosition = () => {
-    scrollPositionRef.current = window.pageYOffset || document.documentElement.scrollTop;
-  };
-
-  const restoreScrollPosition = () => {
-    if (scrollPositionRef.current > 0) {
-      window.scrollTo({
-        top: scrollPositionRef.current,
-        behavior: 'instant'
-      });
-    }
-  };
+  const shouldRestoreScrollRef = useRef<boolean>(false);
 
   // Synchronisiere mit der Karte wenn sich selectedMapMetric ändert
   React.useEffect(() => {
@@ -93,6 +80,30 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
       setChartMetrics(newMetrics);
     }
   }, [selectedMapMetric]);
+
+  // useEffect für Scroll-Position-Restoration nach Chart-Änderungen
+  useEffect(() => {
+    if (shouldRestoreScrollRef.current) {
+      const restoreScroll = () => {
+        window.scrollTo({
+          top: scrollPositionRef.current,
+          behavior: 'instant'
+        });
+        shouldRestoreScrollRef.current = false;
+      };
+
+      restoreScroll();
+      const timeout1 = setTimeout(restoreScroll, 10);
+      const timeout2 = setTimeout(restoreScroll, 50);
+      const timeout3 = setTimeout(restoreScroll, 100);
+
+      return () => {
+        clearTimeout(timeout1);
+        clearTimeout(timeout2);
+        clearTimeout(timeout3);
+      };
+    }
+  }, [chartMetrics, chartTypes]);
 
   // Verwende die übergebene Spalten-Zuordnung
   const headers = data[0] || [];
@@ -220,20 +231,36 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
     });
   }, [rows, columnIndices, filters]);
 
-  // Berechne Gesamtwerte aus allen gefilterten Daten
+  // Berechne Gesamtwerte aus allen gefilterten Daten - OPTIMIERT für große Datasets
   const totalValues = useMemo(() => {
     if (filteredRows.length === 0) return {};
 
     const totals: any = {};
     const currentMetric = chartMetrics[0] || 'cost';
+    const columnIndex = columnIndices[currentMetric as keyof typeof columnIndices];
     
-    filteredRows.forEach(row => {
-      const columnIndex = columnIndices[currentMetric as keyof typeof columnIndices];
-      if (columnIndex !== -1 && row[columnIndex]) {
-        totals[currentMetric] = (totals[currentMetric] || 0) + parseFloat(row[columnIndex]) || 0;
-      }
-    });
+    if (columnIndex === -1) return totals;
 
+    // Effiziente Berechnung: Verarbeite alle Daten in Chunks
+    let sum = 0;
+    const chunkSize = 10000; // Verarbeite in 10.000er Chunks
+    
+    for (let i = 0; i < filteredRows.length; i += chunkSize) {
+      const chunk = filteredRows.slice(i, i + chunkSize);
+      
+      chunk.forEach(row => {
+        if (row[columnIndex]) {
+          sum += parseFloat(row[columnIndex]) || 0;
+        }
+      });
+      
+      // Bei sehr großen Datasets: Zeige Fortschritt (optional)
+      if (filteredRows.length > 100000 && i % 50000 === 0) {
+        // Hier könnte man einen Progress-Indikator anzeigen
+      }
+    }
+    
+    totals[currentMetric] = sum;
     return totals;
   }, [filteredRows, columnIndices, chartMetrics]);
 
@@ -368,7 +395,8 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
 
   const updateChartMetric = (chartIndex: number, metricKey: string) => {
     // Speichere Scroll-Position vor Metrik-Wechsel
-    const currentScrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+    scrollPositionRef.current = window.scrollY;
+    shouldRestoreScrollRef.current = true;
     
     const newMetrics = [...chartMetrics];
     newMetrics[chartIndex] = metricKey;
@@ -378,43 +406,16 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
     if (onMapMetricChange && chartIndex === 0) {
       onMapMetricChange(metricKey);
     }
-    
-    // Stelle Scroll-Position nach Metrik-Wechsel wieder her - mit mehreren Versuchen
-    const restoreScroll = () => {
-      window.scrollTo({
-        top: currentScrollPosition,
-        behavior: 'instant'
-      });
-    };
-    
-    // Sofort und nach kurzer Verzögerung wiederherstellen
-    restoreScroll();
-    setTimeout(restoreScroll, 10);
-    setTimeout(restoreScroll, 50);
-    setTimeout(restoreScroll, 100);
   };
 
   const updateChartType = (chartIndex: number, chartType: string) => {
     // Speichere Scroll-Position vor Chart-Type-Wechsel
-    const currentScrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+    scrollPositionRef.current = window.scrollY;
+    shouldRestoreScrollRef.current = true;
     
     const newTypes = [...chartTypes];
     newTypes[chartIndex] = chartType;
     setChartTypes(newTypes);
-    
-    // Stelle Scroll-Position nach Chart-Type-Wechsel wieder her - mit mehreren Versuchen
-    const restoreScroll = () => {
-      window.scrollTo({
-        top: currentScrollPosition,
-        behavior: 'instant'
-      });
-    };
-    
-    // Sofort und nach kurzer Verzögerung wiederherstellen
-    restoreScroll();
-    setTimeout(restoreScroll, 10);
-    setTimeout(restoreScroll, 50);
-    setTimeout(restoreScroll, 100);
   };
 
   if (chartData.length === 0) {
@@ -491,13 +492,13 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
                     <label className="text-sm font-semibold text-gray-300 dark:text-gray-300 mb-3 block">
                       Metrik auswählen
                     </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                       {METRICS.map((metric) => (
                         <button
                           key={metric.key}
                           onClick={() => updateChartMetric(chartIndex, metric.key)}
                           className={`
-                            px-4 py-3 rounded-booking text-sm font-medium transition-all duration-200
+                            px-3 sm:px-4 py-2 sm:py-3 rounded-booking text-xs sm:text-sm font-medium transition-all duration-200 text-ellipsis
                             ${selectedMetric === metric.key
                               ? 'bg-stroer-500 text-white shadow-booking'
                               : 'bg-gray-700 dark:bg-gray-600 text-gray-300 dark:text-gray-300 hover:bg-gray-600 dark:hover:bg-gray-500'
@@ -513,8 +514,8 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
               </div>
 
               {/* Chart */}
-              <div className="p-6">
-                <div className="h-96 overflow-hidden">
+              <div className="p-4 sm:p-6">
+                <div className="h-64 sm:h-72 lg:h-96 overflow-hidden">
                   <ResponsiveContainer width="100%" height="100%">
                     <ChartComponent data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#374151" />

@@ -69,19 +69,9 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
   const [googleLoaded, setGoogleLoaded] = useState(false);
   const scriptLoadedRef = useRef(false);
   const scrollPositionRef = useRef<number>(0);
+  const shouldRestoreScrollRef = useRef<boolean>(false);
 
   const currentMetric = (selectedMetric || localSelectedMetric) as MetricType;
-
-  // Speichere und stelle Scroll-Position wieder her
-  const saveScrollPosition = () => {
-    scrollPositionRef.current = window.scrollY;
-  };
-
-  const restoreScrollPosition = () => {
-    if (scrollPositionRef.current > 0) {
-      window.scrollTo(0, scrollPositionRef.current);
-    }
-  };
 
   // Lade GeoJSON-Daten
   useEffect(() => {
@@ -109,17 +99,17 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
     loadGeoJsonData();
   }, [mapLevel]);
 
-  // Verarbeite Daten für die Karte - optimiert für Performance
+  // Verarbeite Daten für die Karte - verarbeite alle Daten
   const locationsData = useMemo((): LocationData[] => {
     if (!data.length) return [];
 
-    // Limitiere auf die ersten 10.000 Zeilen für Performance
-    const limitedData = data.slice(0, 10000);
+    // Verarbeite alle Daten - kein Limit mehr
+    const allData = data;
 
     // Gruppiere Daten nach Standort
     const locationGroups = new Map<string, LocationData>();
 
-    limitedData.forEach((item) => {
+    allData.forEach((item) => {
       let locationName = '';
       
       // Bestimme Standort basierend auf Map-Level
@@ -160,7 +150,7 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
       const location = locationGroups.get(locationName)!;
       location.count++;
 
-      // Summiere Metriken - optimiert
+      // Summiere Metriken - alle Daten
       if (item.cost) location.metrics.cost += parseFloat(item.cost) || 0;
       if (item.total_impressions) location.metrics.total_impressions += parseFloat(item.total_impressions) || 0;
       if (item.plays) location.metrics.plays += parseFloat(item.plays) || 0;
@@ -178,7 +168,7 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
         : 0;
     });
 
-        return Array.from(locationGroups.values());
+    return Array.from(locationGroups.values());
   }, [data, mapLevel]); // Nur abhängig von data und mapLevel, da Daten bereits gefiltert sind
 
   // Hilfsfunktion für Bundesland-Namen-Normalisierung
@@ -698,8 +688,6 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
     const defaultZoom = 6; // Deutschland-Übersicht
     const defaultCenter = { lat: 51.1657, lng: 10.4515 }; // Deutschland Zentrum
 
-    console.log(`Creating map for level: ${mapLevel} with default zoom: ${defaultZoom}`);
-
     // Berechne Maximalwerte für Farbintensität
     const maxMetricValue = Math.max(...locationsData.map(loc => getMetricValue(loc, currentMetric)));
 
@@ -769,12 +757,6 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
       });
     });
 
-    // Zusätzlich: Center-Change Event für bessere Navigation
-    map.addListener('center_changed', () => {
-      const newCenter = map.getCenter();
-      console.log('Map center changed to:', newCenter?.lat(), newCenter?.lng());
-    });
-
     // Zeichne GeoJSON
     if (dataLayerRef.current) {
       dataLayerRef.current.setMap(null);
@@ -785,113 +767,13 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
     try {
       dataLayerRef.current.addGeoJson(geoJsonData);
     } catch (error) {
-      console.error('Error adding GeoJSON to map:', error);
       return;
-    }
-
-    if (mapLevel === 'region') {
-      // Bundesländer-Einfärbung
-      dataLayerRef.current.setStyle((feature: any) => {
-        const featureName = feature.getProperty('name') || feature.getProperty('NAME_1') || feature.getProperty('GEN') || feature.getProperty('NAME');
-        
-        const locationData = locationsData.find(loc => {
-          const locName = loc.name.toLowerCase();
-          const featName = featureName?.toLowerCase();
-          
-          if (locName === featName) return true;
-          if (locName.includes(featName) || featName?.includes(locName)) return true;
-          
-          const alternatives = {
-            'baden-württemberg': ['baden wuerttemberg', 'baden-wuerttemberg'],
-            'bayern': ['bavaria'],
-            'nordrhein-westfalen': ['nordrhein westfalen', 'nrw'],
-            'sachsen-anhalt': ['sachsen anhalt'],
-            'schleswig-holstein': ['schleswig holstein'],
-            'thüringen': ['thueringen', 'thuringia'],
-            'rheinland-pfalz': ['rheinland pfalz'],
-            'mecklenburg-vorpommern': ['mecklenburg vorpommern']
-          };
-          
-          for (const [standard, alts] of Object.entries(alternatives)) {
-            if ((locName === standard && alts.includes(featName)) || 
-                (featName === standard && alts.includes(locName))) {
-              return true;
-            }
-          }
-          
-          return false;
-        });
-
-        if (!locationData) {
-          return {
-            fillColor: '#e5e7eb',
-            fillOpacity: 0.1,
-            strokeColor: '#9ca3af',
-            strokeWeight: 1,
-            strokeOpacity: 0.5
-          };
-        }
-
-        const metricValue = getMetricValue(locationData, currentMetric);
-        const intensity = getColorIntensity(metricValue, maxMetricValue);
-        const metricInfo = METRIC_OPTIONS.find(m => m.value === currentMetric);
-
-        return {
-          fillColor: metricInfo?.color || '#FF6B00',
-          fillOpacity: 0.3 + intensity * 0.7,
-          strokeColor: metricInfo?.color || '#FF6B00',
-          strokeWeight: 2,
-          strokeOpacity: 1.0
-        };
-      });
-
-      // Click-Events für Bundesländer
-      dataLayerRef.current.addListener('click', (event: any) => {
-        const feature = event.feature;
-        const featureName = feature.getProperty('name') || feature.getProperty('NAME_1') || feature.getProperty('GEN') || feature.getProperty('NAME');
-        
-        const locationData = locationsData.find(loc => {
-          const locName = loc.name.toLowerCase();
-          const featName = featureName?.toLowerCase();
-          return locName === featName || locName.includes(featName) || featName?.includes(locName);
-        });
-
-        if (locationData) {
-          const metricInfo = METRIC_OPTIONS.find(m => m.value === currentMetric);
-          const metricValue = getMetricValue(locationData, currentMetric);
-
-          const infoWindow = new window.google.maps.InfoWindow({
-            content: generateTooltipContent(locationData, metricValue),
-            position: event.latLng
-          });
-
-          infoWindow.open(map);
-        }
-      });
-    } else {
-      // Für Städte und Sites: Standard-Styling
-      dataLayerRef.current.setStyle({
-        fillColor: '#ffffff',
-        fillOpacity: 0.1,
-        strokeColor: '#d1d5db',
-        strokeWeight: 1
-      });
     }
 
     dataLayerRef.current.setMap(map);
 
-    // Entferne alte Kreise und Säulen
-    circlesRef.current.forEach(circle => circle.setMap(null));
-    circlesRef.current = [];
-    columnsRef.current.forEach(column => column.setMap(null));
-    columnsRef.current = [];
-
     // Zeichne Kreise nur für Städte und Sites
     if (mapLevel !== 'region') {
-      console.log('=== START CIRCLE/MARKER CREATION ===');
-      console.log(`Creating ${mapLevel === 'site' ? 'markers' : 'circles'} for ${mapLevel} level with ${locationsData.length} locations`);
-      console.log('Locations to process:', locationsData.map(loc => loc.name));
-      
       // Deutsche Städte-Koordinaten (nur für Städte die in den Daten vorkommen)
       const cityCoordinates: { [key: string]: { lat: number; lng: number } } = {
         'berlin': { lat: 52.5200, lng: 13.4050 },
@@ -927,7 +809,7 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
         'freiburg': { lat: 47.9990, lng: 7.8421 },
         'krefeld': { lat: 51.3397, lng: 6.5853 },
         'lübeck': { lat: 53.8654, lng: 10.6866 },
-        'oberhausen': { lat: 51.4700, lng: 6.8514 },
+        'oberhausen': { lat: 51.4964, lng: 6.8518 },
         'erfurt': { lat: 50.9848, lng: 11.0299 },
         'mainz': { lat: 49.9929, lng: 8.2473 },
         'rostock': { lat: 54.0924, lng: 12.0991 },
@@ -935,27 +817,25 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
         'potsdam': { lat: 52.3906, lng: 13.0645 },
         'hagen': { lat: 51.3671, lng: 7.4633 },
         'mülheim': { lat: 51.4315, lng: 6.8807 },
-        'muelheim': { lat: 51.4315, lng: 6.8807 },
-        'ludwigshafen': { lat: 49.4744, lng: 8.4422 },
+        'ludwigshafen': { lat: 49.4774, lng: 8.4452 },
         'leverkusen': { lat: 51.0459, lng: 6.9853 },
         'oldenburg': { lat: 53.1434, lng: 8.2146 },
         'osnabrück': { lat: 52.2799, lng: 8.0472 },
-        'osnabrueck': { lat: 52.2799, lng: 8.0472 },
-        'solingen': { lat: 51.1714, lng: 7.0845 },
+        'solingen': { lat: 51.1722, lng: 7.0845 },
         'heidelberg': { lat: 49.3988, lng: 8.6724 },
-        'herne': { lat: 51.5426, lng: 7.2190 },
+        'herne': { lat: 51.5413, lng: 7.2208 },
         'neuss': { lat: 51.2042, lng: 6.6879 },
         'darmstadt': { lat: 49.8728, lng: 8.6512 },
-        'paderborn': { lat: 51.7191, lng: 8.7575 },
+        'paderborn': { lat: 51.7189, lng: 8.7575 },
         'regensburg': { lat: 49.0134, lng: 12.1016 },
-        'ingolstadt': { lat: 48.7644, lng: 11.4242 },
+        'ingolstadt': { lat: 48.7665, lng: 11.4258 },
         'würzburg': { lat: 49.7913, lng: 9.9534 },
         'fürth': { lat: 49.4778, lng: 10.9887 },
         'wolfsburg': { lat: 52.4226, lng: 10.7865 },
         'offenbach': { lat: 50.1006, lng: 8.7665 },
         'ulm': { lat: 48.4011, lng: 9.9876 },
-        'heilbronn': { lat: 49.1427, lng: 9.2105 },
-        'pforzheim': { lat: 48.8926, lng: 8.6979 },
+        'heilbronn': { lat: 49.1427, lng: 9.2109 },
+        'pforzheim': { lat: 48.8924, lng: 8.6947 },
         'göttingen': { lat: 51.5413, lng: 9.9158 },
         'bottrop': { lat: 51.5235, lng: 6.9223 },
         'trier': { lat: 49.7499, lng: 6.6373 },
@@ -972,28 +852,17 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
       };
       
       // Nur Städte/Sites aus den tatsächlichen Daten zeichnen
-      locationsData.forEach((location, index) => {
-        console.log(`=== PROCESSING LOCATION ${index + 1}/${locationsData.length} ===`);
-        console.log(`Location name: "${location.name}"`);
-        
+      locationsData.forEach((location) => {
         // Verwende feste Koordinaten für bekannte Städte
         let coordinates = location.coordinates;
         
         if (!coordinates && mapLevel === 'city') {
           const cityKey = location.name.toLowerCase();
-          console.log(`Looking for coordinates for city key: "${cityKey}"`);
           coordinates = cityCoordinates[cityKey];
-          
-          if (coordinates) {
-            console.log(`Found coordinates for "${location.name}":`, coordinates);
-          } else {
-            console.log(`No coordinates found for city: "${location.name}"`);
-          }
         }
         
         // Fallback: Verwende Deutschland-Zentrum nur wenn wirklich keine Koordinaten verfügbar
         if (!coordinates) {
-          console.log(`Using fallback coordinates for: "${location.name}"`);
           coordinates = { lat: 51.1657, lng: 10.4515 };
         }
 
@@ -1004,93 +873,43 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
         const baseColor = metricInfo?.color || '#FF6B00';
         const color = colorIntensity > 0 ? baseColor : '#d1d5db';
 
-        // Tooltip HTML
-        const tooltipHtml = `
-          <div style="padding: 10px; font-family: Arial, sans-serif; min-width: 200px;">
-            <div style="font-weight: bold; font-size: 16px; margin-bottom: 8px; color: #111827;">
-              ${location.name}
-            </div>
-            <div style="margin-bottom: 4px;">
-              <span style="color: #6b7280;">${currentMetric === 'cost' ? 'Außenumsatz' : 'Metrik'}:</span>
-              <span style="font-weight: bold; color: #111827; margin-left: 8px;">
-                ${currentMetric === 'cost' ? 
-                  new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(metricValue) :
-                  new Intl.NumberFormat('de-DE').format(Math.round(metricValue))
-                }
-              </span>
-            </div>
-            <div style="margin-bottom: 4px;">
-              <span style="color: #6b7280;">Datensätze:</span>
-              <span style="font-weight: bold; color: #111827; margin-left: 8px;">
-                ${location.count}
-              </span>
-            </div>
-          </div>
-        `;
-
-        // Erstelle InfoWindow
-        const infoWindow = new window.google.maps.InfoWindow({
-          content: tooltipHtml
-        });
-
         if (mapLevel === 'site') {
-          // Für Sites: Verwende Marker
-          console.log(`Creating marker for site "${location.name}":`, {
-            coordinates,
-            color,
-            metricValue,
-            intensity: colorIntensity
-          });
-
-          // Erstelle Standard-Marker mit angepasster Farbe
+          // Für Sites: Verwende normale Marker
           const marker = new window.google.maps.Marker({
             position: coordinates,
             map: map,
-            title: location.name,
-            // Verwende Standard-Marker-Icon mit angepasster Farbe
+            title: `${location.name}: ${formatMetricValue(metricValue)}`,
             icon: {
-              url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" 
-                        fill="${color}" 
-                        stroke="${color}" 
-                        stroke-width="1"/>
-                </svg>
-              `)}`,
-              scaledSize: new window.google.maps.Size(16, 16),
-              anchor: new window.google.maps.Point(8, 16)
+              path: window.google.maps.SymbolPath.CIRCLE,
+              scale: 8,
+              fillColor: color,
+              fillOpacity: 0.8,
+              strokeColor: color,
+              strokeWeight: 2
             }
           });
-
-          marker.locationData = location;
-
-          // Click-Event für Marker (nur einfacher Click, nicht Doppelklick)
-          marker.addListener('click', (event: any) => {
-            console.log(`Marker clicked: "${location.name}" at position:`, event.latLng);
-            infoWindow.setPosition(event.latLng);
-            infoWindow.open(map);
-            console.log(`InfoWindow opened for "${location.name}"`);
+          
+          // Tooltip für den Marker
+          const tooltip = new window.google.maps.InfoWindow({
+            content: generateTooltipContent(location, metricValue)
           });
 
-          circlesRef.current.push(marker);
-          console.log(`Marker created successfully for "${location.name}"`);
+          marker.addListener('click', () => {
+            tooltip.open(map, marker);
+          });
 
+          (marker as any).locationData = location;
+          (marker as any).metricValue = metricValue;
+          (marker as any).maxMetricValue = maxMetricValue;
+          
+          circlesRef.current.push(marker);
         } else {
           // Für Städte: Verwende 3D-Säulen anstelle von Kreisen
-          console.log(`Creating 3D column for "${location.name}":`, {
-            coordinates,
-            color,
-            metricValue,
-            intensity: colorIntensity,
-            isFallback: coordinates.lat === 51.1657 && coordinates.lng === 10.4515
-          });
-
           // Erstelle 3D-Säule
           const column = create3DColumn(location, coordinates, map);
           columnsRef.current.push(column);
-                }
-    });
-
+        }
+      });
     }
   }, [geoJsonData, locationsData, currentMetric, mapLevel, googleLoaded]);
 
@@ -1124,13 +943,21 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
       createGoogleMap();
       
       // Stelle Scroll-Position nach Karten-Erstellung wieder her
-      setTimeout(() => {
-        restoreScrollPosition();
-      }, 100);
+      if (shouldRestoreScrollRef.current) {
+        setTimeout(() => {
+          window.scrollTo({
+            top: scrollPositionRef.current,
+            behavior: 'instant'
+          });
+          shouldRestoreScrollRef.current = false;
+        }, 100);
+      }
     }
   }, [googleLoaded, isLoading, geoJsonData, mapLevel, currentMetric, locationsData]); // Füge locationsData hinzu
 
   const handleMetricChange = (metric: MetricType) => {
+    scrollPositionRef.current = window.scrollY;
+    shouldRestoreScrollRef.current = true;
     setLocalSelectedMetric(metric);
     onMetricChange?.(metric);
   };
@@ -1179,7 +1006,8 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
             <select
               value={mapLevel}
               onChange={(e) => {
-                saveScrollPosition(); // Speichere Scroll-Position vor Level-Wechsel
+                scrollPositionRef.current = window.scrollY;
+                shouldRestoreScrollRef.current = true;
                 setMapLevel(e.target.value as MapLevel);
               }}
               className="input-field"

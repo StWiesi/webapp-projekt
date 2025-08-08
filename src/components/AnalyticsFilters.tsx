@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Filter, X, ChevronDown, ChevronUp, Search } from 'lucide-react';
 
 interface AnalyticsFiltersProps {
@@ -58,6 +58,8 @@ const FILTER_DIMENSIONS = [
 const AnalyticsFilters = React.memo(({ data, filters, onFiltersChange, columnMapping }: AnalyticsFiltersProps) => {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set([]));
   const [searchTerms, setSearchTerms] = useState<{ [key: string]: string }>({});
+  const scrollPositionRef = useRef<number>(0);
+  const shouldRestoreScrollRef = useRef<boolean>(false);
 
   // Verwende die übergebene Spalten-Zuordnung
   const headers = data[0] || [];
@@ -120,7 +122,8 @@ const AnalyticsFilters = React.memo(({ data, filters, onFiltersChange, columnMap
 
   const toggleFilter = (dimension: string, value: string) => {
     // Speichere Scroll-Position vor Filter-Änderung
-    const scrollPosition = window.scrollY;
+    scrollPositionRef.current = window.scrollY;
+    shouldRestoreScrollRef.current = true;
     
     // Nur für Array-Filter
     if (dimension !== 'dateRange') {
@@ -134,25 +137,12 @@ const AnalyticsFilters = React.memo(({ data, filters, onFiltersChange, columnMap
         [dimension]: newFilters
       });
     }
-    
-    // Stelle Scroll-Position nach Filter-Änderung wieder her - mit mehreren Versuchen
-    const restoreScroll = () => {
-      window.scrollTo({
-        top: scrollPosition,
-        behavior: 'instant'
-      });
-    };
-    
-    // Sofort und nach kurzer Verzögerung wiederherstellen
-    restoreScroll();
-    setTimeout(restoreScroll, 10);
-    setTimeout(restoreScroll, 50);
-    setTimeout(restoreScroll, 100);
   };
 
   const clearFilter = (dimension: string) => {
     // Speichere Scroll-Position vor Filter-Änderung
-    const scrollPosition = window.scrollY;
+    scrollPositionRef.current = window.scrollY;
+    shouldRestoreScrollRef.current = true;
     
     if (dimension === 'dateRange') {
       onFiltersChange({
@@ -168,25 +158,12 @@ const AnalyticsFilters = React.memo(({ data, filters, onFiltersChange, columnMap
         [dimension]: []
       });
     }
-    
-    // Stelle Scroll-Position nach Filter-Änderung wieder her - mit mehreren Versuchen
-    const restoreScroll = () => {
-      window.scrollTo({
-        top: scrollPosition,
-        behavior: 'instant'
-      });
-    };
-    
-    // Sofort und nach kurzer Verzögerung wiederherstellen
-    restoreScroll();
-    setTimeout(restoreScroll, 10);
-    setTimeout(restoreScroll, 50);
-    setTimeout(restoreScroll, 100);
   };
 
   const clearAllFilters = () => {
     // Speichere Scroll-Position vor Filter-Änderung
-    const scrollPosition = window.scrollY;
+    scrollPositionRef.current = window.scrollY;
+    shouldRestoreScrollRef.current = true;
     
     // Setze alle Filter zurück auf leere Arrays
     onFiltersChange({
@@ -201,20 +178,6 @@ const AnalyticsFilters = React.memo(({ data, filters, onFiltersChange, columnMap
         end: ''
       }
     });
-    
-    // Stelle Scroll-Position nach Filter-Änderung wieder her - mit mehreren Versuchen
-    const restoreScroll = () => {
-      window.scrollTo({
-        top: scrollPosition,
-        behavior: 'instant'
-      });
-    };
-    
-    // Sofort und nach kurzer Verzögerung wiederherstellen
-    restoreScroll();
-    setTimeout(restoreScroll, 10);
-    setTimeout(restoreScroll, 50);
-    setTimeout(restoreScroll, 100);
   };
 
   const updateSearchTerm = (dimension: string, term: string) => {
@@ -223,6 +186,34 @@ const AnalyticsFilters = React.memo(({ data, filters, onFiltersChange, columnMap
       [dimension]: term
     }));
   };
+
+  // useEffect für Scroll-Position-Restoration nach Filter-Änderungen
+  useEffect(() => {
+    if (shouldRestoreScrollRef.current) {
+      // Warte bis das DOM aktualisiert wurde
+      const restoreScroll = () => {
+        window.scrollTo({
+          top: scrollPositionRef.current,
+          behavior: 'instant'
+        });
+        shouldRestoreScrollRef.current = false;
+      };
+
+      // Sofort und mit mehreren Verzögerungen versuchen
+      restoreScroll();
+      const timeout1 = setTimeout(restoreScroll, 10);
+      const timeout2 = setTimeout(restoreScroll, 50);
+      const timeout3 = setTimeout(restoreScroll, 100);
+      const timeout4 = setTimeout(restoreScroll, 200);
+
+      return () => {
+        clearTimeout(timeout1);
+        clearTimeout(timeout2);
+        clearTimeout(timeout3);
+        clearTimeout(timeout4);
+      };
+    }
+  }, [filters]); // Abhängig von filters, damit es bei jeder Filter-Änderung ausgeführt wird
 
   const getFilteredOptions = (dimension: string) => {
     const options = availableOptions[dimension] || [];
@@ -279,14 +270,14 @@ const AnalyticsFilters = React.memo(({ data, filters, onFiltersChange, columnMap
   return (
     <div className="bg-gray-800 dark:bg-gray-900 rounded-booking-lg shadow-booking border border-gray-700 dark:border-gray-600">
       {/* Header */}
-      <div className="p-6 border-b border-gray-700 dark:border-gray-600">
+      <div className="p-4 sm:p-6 border-b border-gray-700 dark:border-gray-600">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-stroer-500 rounded-booking flex items-center justify-center">
-              <Filter className="h-5 w-5 text-white" />
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-stroer-500 rounded-booking flex items-center justify-center">
+              <Filter className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-100 dark:text-gray-100">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-100 dark:text-gray-100">
                 Datenfilter
               </h3>
               {getTotalActiveFilters() > 0 && (
@@ -323,20 +314,20 @@ const AnalyticsFilters = React.memo(({ data, filters, onFiltersChange, columnMap
                 {/* Section Header */}
                 <div
                   onClick={() => toggleSection(dimension.key)}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-700 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                  className="w-full flex items-center justify-between p-3 sm:p-4 text-left hover:bg-gray-700 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                 >
-                  <div className="flex items-center gap-4">
-                    <span className="text-xl">{dimension.icon}</span>
-                    <div className="text-left">
-                      <span className="font-semibold text-gray-100 dark:text-gray-100">
+                  <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                    <span className="text-lg sm:text-xl flex-shrink-0">{dimension.icon}</span>
+                    <div className="text-left min-w-0 flex-1">
+                      <span className="font-semibold text-gray-100 dark:text-gray-100 text-sm sm:text-base text-ellipsis block">
                         {dimension.label}
                       </span>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-sm text-gray-400 dark:text-gray-400">
+                        <span className="text-xs sm:text-sm text-gray-400 dark:text-gray-400 text-ellipsis">
                           Datumsbereich
                         </span>
                         {isDateFilterActive && (
-                          <span className="badge badge-success">
+                          <span className="badge badge-success flex-shrink-0">
                             1
                           </span>
                         )}
@@ -375,34 +366,21 @@ const AnalyticsFilters = React.memo(({ data, filters, onFiltersChange, columnMap
                         <input
                           type="date"
                           value={filters.dateRange.start}
-                                                  onChange={(e) => {
-                          // Speichere Scroll-Position vor Filter-Änderung
-                          const scrollPosition = window.scrollY;
-                          
-                          onFiltersChange({
-                            ...filters,
-                            dateRange: {
-                              ...filters.dateRange,
-                              start: e.target.value
-                            }
-                          });
-                          
-                                                    // Stelle Scroll-Position nach Filter-Änderung wieder her - mit mehreren Versuchen
-                          const restoreScroll = () => {
-                            window.scrollTo({
-                              top: scrollPosition,
-                              behavior: 'instant'
+                          onChange={(e) => {
+                            // Speichere Scroll-Position vor Filter-Änderung
+                            scrollPositionRef.current = window.scrollY;
+                            shouldRestoreScrollRef.current = true;
+                            
+                            onFiltersChange({
+                              ...filters,
+                              dateRange: {
+                                ...filters.dateRange,
+                                start: e.target.value
+                              }
                             });
-                          };
-                          
-                          // Sofort und nach kurzer Verzögerung wiederherstellen
-                          restoreScroll();
-                          setTimeout(restoreScroll, 10);
-                          setTimeout(restoreScroll, 50);
-                          setTimeout(restoreScroll, 100);
-                        }}
-                        className="input-field w-full"
-                      />
+                          }}
+                          className="input-field w-full"
+                        />
                     </div>
 
                     {/* End Date */}
@@ -413,32 +391,19 @@ const AnalyticsFilters = React.memo(({ data, filters, onFiltersChange, columnMap
                         <input
                           type="date"
                           value={filters.dateRange.end}
-                                                  onChange={(e) => {
-                          // Speichere Scroll-Position vor Filter-Änderung
-                          const scrollPosition = window.scrollY;
-                          
-                          onFiltersChange({
-                            ...filters,
-                            dateRange: {
-                              ...filters.dateRange,
-                              end: e.target.value
-                            }
-                          });
-                          
-                          // Stelle Scroll-Position nach Filter-Änderung wieder her - mit mehreren Versuchen
-                          const restoreScroll = () => {
-                            window.scrollTo({
-                              top: scrollPosition,
-                              behavior: 'instant'
+                          onChange={(e) => {
+                            // Speichere Scroll-Position vor Filter-Änderung
+                            scrollPositionRef.current = window.scrollY;
+                            shouldRestoreScrollRef.current = true;
+                            
+                            onFiltersChange({
+                              ...filters,
+                              dateRange: {
+                                ...filters.dateRange,
+                                end: e.target.value
+                              }
                             });
-                          };
-                          
-                          // Sofort und nach kurzer Verzögerung wiederherstellen
-                          restoreScroll();
-                          setTimeout(restoreScroll, 10);
-                          setTimeout(restoreScroll, 50);
-                          setTimeout(restoreScroll, 100);
-                        }}
+                          }}
                           className="input-field w-full"
                         />
                       </div>
@@ -459,20 +424,20 @@ const AnalyticsFilters = React.memo(({ data, filters, onFiltersChange, columnMap
             {/* Section Header */}
             <div
               onClick={() => toggleSection(dimension.key)}
-              className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-700 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+              className="w-full flex items-center justify-between p-3 sm:p-4 text-left hover:bg-gray-700 dark:hover:bg-gray-800 transition-colors cursor-pointer"
             >
-              <div className="flex items-center gap-4">
-                <span className="text-xl">{dimension.icon}</span>
-                <div className="text-left">
-                  <span className="font-semibold text-gray-100 dark:text-gray-100">
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                <span className="text-lg sm:text-xl flex-shrink-0">{dimension.icon}</span>
+                <div className="text-left min-w-0 flex-1">
+                  <span className="font-semibold text-gray-100 dark:text-gray-100 text-sm sm:text-base text-ellipsis block">
                     {dimension.label}
                   </span>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-sm text-gray-400 dark:text-gray-400">
+                    <span className="text-xs sm:text-sm text-gray-400 dark:text-gray-400 text-ellipsis">
                       {options.length} Optionen
                     </span>
                     {activeFilters.length > 0 && (
-                      <span className="badge badge-success">
+                      <span className="badge badge-success flex-shrink-0">
                         {activeFilters.length}
                       </span>
                     )}
