@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import {
   LineChart,
   Line,
@@ -26,6 +26,10 @@ interface MultiChartDashboardProps {
     site: string[];
     screenIds: string[];
     auctionType: string[];
+    dateRange: {
+      start: string;
+      end: string;
+    };
   };
   columnMapping: {
     date: number;
@@ -46,13 +50,13 @@ interface MultiChartDashboardProps {
 }
 
 const METRICS = [
-  { key: 'cost', label: 'Außenumsatz', color: '#FF6B00', icon: '💰', unit: '€', type: 'absolute', showTotal: true },
-  { key: 'total_impressions', label: 'Impressions', color: '#003366', icon: '👁️', unit: '', type: 'absolute', showTotal: true },
-  { key: 'plays', label: 'Plays', color: '#00a699', icon: '▶️', unit: '', type: 'absolute', showTotal: true },
-  { key: 'auction_wins', label: 'Scheduled Plays', color: '#ffb020', icon: '🏆', unit: '', type: 'absolute', showTotal: true },
-  { key: 'ad_requests', label: 'Ad Requests', color: '#8b5cf6', icon: '📊', unit: '', type: 'absolute', showTotal: true },
-  { key: 'coverage', label: 'Coverage', color: '#06b6d4', icon: '🎯', unit: '%', type: 'percentage', showTotal: false },
-  { key: 'play_rate', label: 'Play Rate', color: '#84cc16', icon: '📈', unit: '%', type: 'percentage', showTotal: false }
+  { key: 'cost', label: 'Außenumsatz', color: '#FF6B00', unit: '€', type: 'absolute', showTotal: true },
+  { key: 'total_impressions', label: 'Impressions', color: '#FF6B00', unit: '', type: 'absolute', showTotal: true },
+  { key: 'plays', label: 'Plays', color: '#FF6B00', unit: '', type: 'absolute', showTotal: true },
+  { key: 'auction_wins', label: 'Scheduled Plays', color: '#FF6B00', unit: '', type: 'absolute', showTotal: true },
+  { key: 'ad_requests', label: 'Ad Requests', color: '#FF6B00', unit: '', type: 'absolute', showTotal: true },
+  { key: 'coverage', label: 'Coverage', color: '#FF6B00', unit: '%', type: 'percentage', showTotal: false },
+  { key: 'play_rate', label: 'Play Rate', color: '#FF6B00', unit: '%', type: 'percentage', showTotal: false }
 ];
 
 const CHART_TYPES = [
@@ -65,6 +69,21 @@ const DEFAULT_METRICS = ['cost'];
 export default function MultiChartDashboard({ data, filters, columnMapping, selectedMapMetric, onMapMetricChange }: MultiChartDashboardProps) {
   const [chartMetrics, setChartMetrics] = useState(DEFAULT_METRICS);
   const [chartTypes, setChartTypes] = useState(['line']);
+  const scrollPositionRef = useRef<number>(0);
+
+  // Speichere und stelle Scroll-Position wieder her
+  const saveScrollPosition = () => {
+    scrollPositionRef.current = window.pageYOffset || document.documentElement.scrollTop;
+  };
+
+  const restoreScrollPosition = () => {
+    if (scrollPositionRef.current > 0) {
+      window.scrollTo({
+        top: scrollPositionRef.current,
+        behavior: 'instant'
+      });
+    }
+  };
 
   // Synchronisiere mit der Karte wenn sich selectedMapMetric ändert
   React.useEffect(() => {
@@ -96,112 +115,241 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
     };
   }, [columnMapping]);
 
-  // Filtere und aggregiere Daten
-  const chartData = useMemo(() => {
-    if (!rows || rows.length === 0 || columnIndices.date === -1) return [];
+  // Filtere alle Daten basierend auf den aktiven Filtern
+  const filteredRows = useMemo(() => {
+    if (!rows || rows.length === 0) return [];
 
-    // Filtere Zeilen basierend auf den aktiven Filtern
-    const filteredRows = rows.filter(row => {
-      for (const [filterKey, filterValues] of Object.entries(filters)) {
-        if (filterValues.length === 0) continue;
-        
-        const columnIndex = columnIndices[filterKey as keyof typeof columnIndices];
-        if (columnIndex === -1) continue;
-        
-        const rowValue = row[columnIndex]?.toString() || '';
-        if (!filterValues.includes(rowValue)) {
-          return false;
+    return rows.filter(row => {
+      // Prüfe nur Filter, die tatsächlich Werte haben (nicht leer sind)
+      if (filters.network && filters.network.length > 0) {
+        const columnIndex = columnIndices.network;
+        if (columnIndex !== -1) {
+          const rowValue = row[columnIndex]?.toString() || '';
+          if (!filters.network.includes(rowValue)) return false;
         }
       }
+      
+      if (filters.region && filters.region.length > 0) {
+        const columnIndex = columnIndices.region;
+        if (columnIndex !== -1) {
+          const rowValue = row[columnIndex]?.toString() || '';
+          if (!filters.region.includes(rowValue)) return false;
+        }
+      }
+      
+      if (filters.city && filters.city.length > 0) {
+        const columnIndex = columnIndices.city;
+        if (columnIndex !== -1) {
+          const rowValue = row[columnIndex]?.toString() || '';
+          if (!filters.city.includes(rowValue)) return false;
+        }
+      }
+      
+      if (filters.site && filters.site.length > 0) {
+        const columnIndex = columnIndices.site;
+        if (columnIndex !== -1) {
+          const rowValue = row[columnIndex]?.toString() || '';
+          if (!filters.site.includes(rowValue)) return false;
+        }
+      }
+      
+      if (filters.screenIds && filters.screenIds.length > 0) {
+        const columnIndex = columnIndices.screen_ids;
+        if (columnIndex !== -1) {
+          const rowValue = row[columnIndex]?.toString() || '';
+          if (!filters.screenIds.includes(rowValue)) return false;
+        }
+      }
+      
+      if (filters.auctionType && filters.auctionType.length > 0) {
+        const columnIndex = columnIndices.auction_type;
+        if (columnIndex !== -1) {
+          const rowValue = row[columnIndex]?.toString() || '';
+          if (!filters.auctionType.includes(rowValue)) return false;
+        }
+      }
+      
+      // Datumsfilter
+      if (filters.dateRange.start || filters.dateRange.end) {
+        const columnIndex = columnIndices.date;
+        if (columnIndex !== -1) {
+          const rowDateValue = row[columnIndex];
+          if (!rowDateValue) return false;
+          
+          try {
+            // Parse das Datum aus der Zeile
+            let rowDate: Date;
+            const dateStr = rowDateValue.toString();
+            
+            // Format: "8/1/25" -> "2025-08-01"
+            if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{2}$/)) {
+              const [month, day, year] = dateStr.split('/');
+              rowDate = new Date(2000 + parseInt(year), parseInt(month) - 1, parseInt(day));
+            }
+            // Format: "8/1/2025" -> "2025-08-01"
+            else if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+              const [month, day, year] = dateStr.split('/');
+              rowDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+            }
+            // Standard Date-Konstruktor
+            else {
+              rowDate = new Date(rowDateValue);
+            }
+            
+            // Prüfe Startdatum (inklusiv)
+            if (filters.dateRange.start) {
+              const startDate = new Date(filters.dateRange.start);
+              startDate.setHours(0, 0, 0, 0); // Setze auf Mitternacht
+              if (rowDate < startDate) return false;
+            }
+            
+            // Prüfe Enddatum (inklusiv)
+            if (filters.dateRange.end) {
+              const endDate = new Date(filters.dateRange.end);
+              endDate.setHours(23, 59, 59, 999); // Setze auf Ende des Tages
+              if (rowDate > endDate) return false;
+            }
+          } catch {
+            // Bei Fehlern beim Parsen des Datums, Zeile ausschließen
+            return false;
+          }
+        }
+      }
+      
       return true;
     });
+  }, [rows, columnIndices, filters]);
+
+  // Berechne Gesamtwerte aus allen gefilterten Daten
+  const totalValues = useMemo(() => {
+    if (filteredRows.length === 0) return {};
+
+    const totals: any = {};
+    const currentMetric = chartMetrics[0] || 'cost';
+    
+    filteredRows.forEach(row => {
+      const columnIndex = columnIndices[currentMetric as keyof typeof columnIndices];
+      if (columnIndex !== -1 && row[columnIndex]) {
+        totals[currentMetric] = (totals[currentMetric] || 0) + parseFloat(row[columnIndex]) || 0;
+      }
+    });
+
+    return totals;
+  }, [filteredRows, columnIndices, chartMetrics]);
+
+  // Filtere und aggregiere Daten für das Chart - optimiert für Performance
+  const chartData = useMemo(() => {
+    if (filteredRows.length === 0 || columnIndices.date === -1) return [];
+
+    // Limitiere auf die ersten 10.000 Zeilen für Performance
+    const limitedRows = filteredRows.slice(0, 10000);
+
+
 
     if (filteredRows.length === 0) return [];
 
-    // Gruppiere nach Datum
+    // Gruppiere nach Datum - optimiert
     const groupedByDate = new Map<string, any>();
-
+    
     filteredRows.forEach(row => {
-      const dateIndex = columnIndices.date;
-      let dateValue = row[dateIndex];
+      const dateValue = row[columnIndices.date];
       if (!dateValue) return;
-
-      // Konvertiere verschiedene Datumsformate
-      let parsedDate: Date | null = null;
       
-      if (typeof dateValue === 'string') {
+      let dateKey = '';
+      try {
         // Versuche verschiedene Datumsformate
-        try {
-          // ISO Format
-          if (dateValue.includes('-')) {
-            parsedDate = parseISO(dateValue);
+        let date: Date;
+        
+        // Prüfe ob es bereits ein Date-Objekt ist
+        if (dateValue instanceof Date) {
+          date = dateValue;
+        } else {
+          // Versuche verschiedene Datumsformate zu parsen
+          const dateStr = dateValue.toString();
+          
+          // Format: "8/1/25" -> "2025-08-01"
+          if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{2}$/)) {
+            const [month, day, year] = dateStr.split('/');
+            date = new Date(2000 + parseInt(year), parseInt(month) - 1, parseInt(day));
           }
-          // Deutsches Format (DD.MM.YYYY)
-          else if (dateValue.includes('.')) {
-            const [day, month, year] = dateValue.split('.');
-            parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+          // Format: "8/1/2025" -> "2025-08-01"
+          else if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+            const [month, day, year] = dateStr.split('/');
+            date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
           }
-          // Andere Formate
+          // Standard Date-Konstruktor
           else {
-            parsedDate = new Date(dateValue);
+            date = new Date(dateValue);
           }
-        } catch {
-          // Fallback
-          parsedDate = new Date(dateValue);
         }
-      } else if (typeof dateValue === 'number') {
-        // Excel Datum
-        parsedDate = new Date((dateValue - 25569) * 86400 * 1000);
-      } else if (dateValue instanceof Date) {
-        parsedDate = dateValue;
+        
+        if (isValid(date)) {
+          dateKey = format(date, 'yyyy-MM-dd');
+        } else {
+          // Fallback: verwende den ursprünglichen Wert
+          dateKey = dateValue.toString();
+        }
+      } catch {
+        dateKey = dateValue.toString();
       }
-
-      if (!parsedDate || !isValid(parsedDate)) return;
-
-      const dateKey = format(parsedDate, 'yyyy-MM-dd');
       
       if (!groupedByDate.has(dateKey)) {
         groupedByDate.set(dateKey, {
           date: dateKey,
-          displayDate: format(parsedDate, 'dd.MM', { locale: de }),
           cost: 0,
           total_impressions: 0,
           plays: 0,
           auction_wins: 0,
-          ad_requests: 0
+          ad_requests: 0,
+          coverage: 0,
+          play_rate: 0,
+          count: 0
         });
       }
-
-      const group = groupedByDate.get(dateKey);
       
-      // Summiere Metriken
-      if (columnIndices.cost !== -1) {
-        group.cost += parseFloat(row[columnIndices.cost]) || 0;
+      const entry = groupedByDate.get(dateKey);
+      entry.count++;
+      
+      // Summiere Metriken - optimiert
+      if (columnIndices.cost !== -1 && row[columnIndices.cost]) {
+        entry.cost += parseFloat(row[columnIndices.cost]) || 0;
       }
-      if (columnIndices.total_impressions !== -1) {
-        group.total_impressions += parseFloat(row[columnIndices.total_impressions]) || 0;
+      if (columnIndices.total_impressions !== -1 && row[columnIndices.total_impressions]) {
+        entry.total_impressions += parseFloat(row[columnIndices.total_impressions]) || 0;
       }
-      if (columnIndices.plays !== -1) {
-        group.plays += parseFloat(row[columnIndices.plays]) || 0;
+      if (columnIndices.plays !== -1 && row[columnIndices.plays]) {
+        entry.plays += parseFloat(row[columnIndices.plays]) || 0;
       }
-      if (columnIndices.auction_wins !== -1) {
-        group.auction_wins += parseFloat(row[columnIndices.auction_wins]) || 0;
+      if (columnIndices.auction_wins !== -1 && row[columnIndices.auction_wins]) {
+        entry.auction_wins += parseFloat(row[columnIndices.auction_wins]) || 0;
       }
-      if (columnIndices.ad_requests !== -1) {
-        group.ad_requests += parseFloat(row[columnIndices.ad_requests]) || 0;
+      if (columnIndices.ad_requests !== -1 && row[columnIndices.ad_requests]) {
+        entry.ad_requests += parseFloat(row[columnIndices.ad_requests]) || 0;
       }
     });
+    
+    // Berechne abgeleitete Metriken und formatiere Datum für Anzeige
+    groupedByDate.forEach(entry => {
+      entry.coverage = entry.ad_requests > 0 ? (entry.plays / entry.ad_requests) * 100 : 0;
+      entry.play_rate = entry.auction_wins > 0 ? (entry.plays / entry.auction_wins) * 100 : 0;
+      
+      // Formatiere Datum für die X-Achse
+      try {
+        const date = parseISO(entry.date);
+        if (isValid(date)) {
+          entry.displayDate = format(date, 'dd.MM.yy', { locale: de });
+        } else {
+          entry.displayDate = entry.date;
+        }
+      } catch {
+        entry.displayDate = entry.date;
+      }
+    });
+    
+    return Array.from(groupedByDate.values()).sort((a, b) => a.date.localeCompare(b.date));
+  }, [rows, columnIndices, filters, chartMetrics]); // Füge chartMetrics hinzu
 
-    // Berechne abgeleitete Metriken
-    const result = Array.from(groupedByDate.values()).map(group => ({
-      ...group,
-      coverage: group.ad_requests > 0 ? (group.plays / group.ad_requests) * 100 : 0,
-      play_rate: group.auction_wins > 0 ? (group.plays / group.auction_wins) * 100 : 0
-    }));
 
-    // Sortiere nach Datum
-    return result.sort((a, b) => a.date.localeCompare(b.date));
-  }, [rows, filters, columnIndices]);
 
   const formatValue = (value: number, unit: string) => {
     if (unit === '€') {
@@ -219,6 +367,9 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
   };
 
   const updateChartMetric = (chartIndex: number, metricKey: string) => {
+    // Speichere Scroll-Position vor Metrik-Wechsel
+    const currentScrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+    
     const newMetrics = [...chartMetrics];
     newMetrics[chartIndex] = metricKey;
     setChartMetrics(newMetrics);
@@ -227,12 +378,43 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
     if (onMapMetricChange && chartIndex === 0) {
       onMapMetricChange(metricKey);
     }
+    
+    // Stelle Scroll-Position nach Metrik-Wechsel wieder her - mit mehreren Versuchen
+    const restoreScroll = () => {
+      window.scrollTo({
+        top: currentScrollPosition,
+        behavior: 'instant'
+      });
+    };
+    
+    // Sofort und nach kurzer Verzögerung wiederherstellen
+    restoreScroll();
+    setTimeout(restoreScroll, 10);
+    setTimeout(restoreScroll, 50);
+    setTimeout(restoreScroll, 100);
   };
 
   const updateChartType = (chartIndex: number, chartType: string) => {
+    // Speichere Scroll-Position vor Chart-Type-Wechsel
+    const currentScrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+    
     const newTypes = [...chartTypes];
     newTypes[chartIndex] = chartType;
     setChartTypes(newTypes);
+    
+    // Stelle Scroll-Position nach Chart-Type-Wechsel wieder her - mit mehreren Versuchen
+    const restoreScroll = () => {
+      window.scrollTo({
+        top: currentScrollPosition,
+        behavior: 'instant'
+      });
+    };
+    
+    // Sofort und nach kurzer Verzögerung wiederherstellen
+    restoreScroll();
+    setTimeout(restoreScroll, 10);
+    setTimeout(restoreScroll, 50);
+    setTimeout(restoreScroll, 100);
   };
 
   if (chartData.length === 0) {
@@ -315,14 +497,13 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
                           key={metric.key}
                           onClick={() => updateChartMetric(chartIndex, metric.key)}
                           className={`
-                            flex items-center gap-3 px-4 py-3 rounded-booking text-sm font-medium transition-all duration-200
+                            px-4 py-3 rounded-booking text-sm font-medium transition-all duration-200
                             ${selectedMetric === metric.key
                               ? 'bg-stroer-500 text-white shadow-booking'
                               : 'bg-gray-700 dark:bg-gray-600 text-gray-300 dark:text-gray-300 hover:bg-gray-600 dark:hover:bg-gray-500'
                             }
                           `}
                         >
-                          <span className="text-lg">{metric.icon}</span>
                           <span className="truncate">{metric.label}</span>
                         </button>
                       ))}
@@ -333,7 +514,7 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
 
               {/* Chart */}
               <div className="p-6">
-                <div className="h-96">
+                <div className="h-96 overflow-hidden">
                   <ResponsiveContainer width="100%" height="100%">
                     <ChartComponent data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -398,10 +579,10 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
                   <div className="mt-6 grid grid-cols-2 gap-4">
                     {metricInfo?.showTotal ? (
                       <div className="bg-gray-700 dark:bg-gray-600 rounded-booking-lg p-4">
-                        <p className="text-sm text-gray-400 dark:text-gray-400 mb-1">Gesamt</p>
+                        <p className="text-sm text-gray-400 dark:text-gray-400 mb-1">Gesamt (Alle Daten)</p>
                         <p className="text-xl font-bold text-gray-100 dark:text-gray-100">
                           {formatValue(
-                            chartData.reduce((sum, item) => sum + item[selectedMetric], 0),
+                            totalValues[selectedMetric] || 0,
                             metricInfo?.unit || ''
                           )}
                         </p>
@@ -415,7 +596,7 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
                       </div>
                     )}
                     <div className="bg-gray-700 dark:bg-gray-600 rounded-booking-lg p-4">
-                      <p className="text-sm text-gray-400 dark:text-gray-400 mb-1">Durchschnitt</p>
+                      <p className="text-sm text-gray-400 dark:text-gray-400 mb-1">Durchschnitt (Chart-Daten)</p>
                       <p className="text-xl font-bold text-gray-100 dark:text-gray-100">
                         {formatValue(
                           chartData.reduce((sum, item) => sum + item[selectedMetric], 0) / chartData.length,

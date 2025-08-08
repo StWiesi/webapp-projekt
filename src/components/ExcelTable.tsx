@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { Search, ChevronUp, ChevronDown } from 'lucide-react';
 
 interface ExcelTableProps {
   data: any[][];
   filename: string;
 }
 
-export default function ExcelTable({ data, filename }: ExcelTableProps) {
+const ExcelTable = React.memo(({ data, filename }: ExcelTableProps) => {
   const [sortConfig, setSortConfig] = useState<{
     key: number;
     direction: 'asc' | 'desc';
@@ -184,4 +184,6 @@ export default function ExcelTable({ data, filename }: ExcelTableProps) {
       </div>
     </div>
   );
-}
+});
+
+export default ExcelTable;

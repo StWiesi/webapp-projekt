@@ -54,7 +54,7 @@ const SEARCH_TERMS = {
   auctionType: ['auction_type', 'auctiontype', 'auction type', 'auction-type', 'bidding_type', 'programmatic_type', 'type_auction', 'auction_method', 'type auction', 'bid_type', 'kampagnentyp', 'campaign_type', 'auction', 'bidding', 'type']
 };
 
-export default function ColumnMapper({ data, onMappingChange }: ColumnMapperProps) {
+const ColumnMapper = React.memo(({ data, onMappingChange }: ColumnMapperProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [manualMapping, setManualMapping] = useState<{ [key: string]: number }>({});
 
@@ -405,4 +405,6 @@ export default function ColumnMapper({ data, onMappingChange }: ColumnMapperProp
       )}
     </div>
   );
-}
+});
+
+export default ColumnMapper;

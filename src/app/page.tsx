@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import ExcelUploader from '@/components/ExcelUploader';
 import MultiChartDashboard from '@/components/MultiChartDashboard';
 import AnalyticsFilters from '@/components/AnalyticsFilters';
@@ -10,6 +10,7 @@ import ErrorMessage from '@/components/ErrorMessage';
 import GermanyMap from '@/components/GermanyMap';
 import FileInfo from '@/components/FileInfo';
 import Logo from '@/components/Logo';
+import React from 'react';
 
 export default function Home() {
   const [excelData, setExcelData] = useState<any[][] | null>(null);
@@ -21,7 +22,11 @@ export default function Home() {
     city: [] as string[],
     site: [] as string[],
     screenIds: [] as string[],
-    auctionType: [] as string[]
+    auctionType: [] as string[],
+    dateRange: {
+      start: '',
+      end: ''
+    }
   });
   const [columnMapping, setColumnMapping] = useState({
     date: -1,
@@ -39,59 +44,286 @@ export default function Home() {
   });
   const [selectedMapMetric, setSelectedMapMetric] = useState<string>('cost');
 
-  // Konvertiere 2D-Array zu Array von Objekten für die Karte
-  const convertToObjectArray = (data: any[][]): any[] => {
-    if (!data || data.length < 2) return [];
-    
-    const headers = data[0];
-    const rows = data.slice(1);
-    
-    return rows.map(row => {
-      const obj: any = {};
+  // Aktualisiere ColumnMapping wenn excelData gesetzt wird
+  React.useEffect(() => {
+    if (excelData && excelData.length > 1) {
+      const headers = excelData[0];
+      const newColumnMapping = {
+        date: -1,
+        cost: -1,
+        total_impressions: -1,
+        plays: -1,
+        auction_wins: -1,
+        ad_requests: -1,
+        network: -1,
+        region: -1,
+        city: -1,
+        site: -1,
+        screenIds: -1,
+        auctionType: -1
+      };
+      
       headers.forEach((header, index) => {
-        // Normalisiere Spaltennamen für die Karte
         const normalizedHeader = header?.toString()?.toLowerCase()?.trim();
-        let mappedKey = header;
         
-        // Mappe Spaltennamen zu den erwarteten Schlüsseln
-        if (normalizedHeader?.includes('cost') || normalizedHeader?.includes('kosten') || normalizedHeader?.includes('außenumsatz')) {
-          mappedKey = 'cost';
+        if (normalizedHeader?.includes('date') || normalizedHeader?.includes('datum')) {
+          newColumnMapping.date = index;
+        } else if (normalizedHeader?.includes('cost') || normalizedHeader?.includes('kosten') || normalizedHeader?.includes('außenumsatz')) {
+          newColumnMapping.cost = index;
         } else if (normalizedHeader?.includes('impression') || normalizedHeader?.includes('impressionen')) {
-          mappedKey = 'total_impressions';
+          newColumnMapping.total_impressions = index;
         } else if (normalizedHeader?.includes('play') || normalizedHeader?.includes('wiedergabe')) {
-          mappedKey = 'plays';
+          newColumnMapping.plays = index;
         } else if (normalizedHeader?.includes('auction') || normalizedHeader?.includes('auktion') || normalizedHeader?.includes('scheduled')) {
-          mappedKey = 'auction_wins';
+          newColumnMapping.auction_wins = index;
         } else if (normalizedHeader?.includes('request') || normalizedHeader?.includes('anfrage')) {
-          mappedKey = 'ad_requests';
-        } else if (normalizedHeader?.includes('latitude') || normalizedHeader?.includes('lat') || normalizedHeader?.includes('breitengrad')) {
-          mappedKey = 'latitude';
-        } else if (normalizedHeader?.includes('longitude') || normalizedHeader?.includes('lng') || normalizedHeader?.includes('längengrad')) {
-          mappedKey = 'longitude';
+          newColumnMapping.ad_requests = index;
         } else if (normalizedHeader?.includes('network') || normalizedHeader?.includes('netzwerk')) {
-          mappedKey = 'network';
+          newColumnMapping.network = index;
         } else if (normalizedHeader?.includes('region') || normalizedHeader?.includes('bundesland')) {
-          mappedKey = 'region';
+          newColumnMapping.region = index;
         } else if (normalizedHeader?.includes('city') || normalizedHeader?.includes('stadt')) {
-          mappedKey = 'city';
+          newColumnMapping.city = index;
         } else if (normalizedHeader?.includes('site')) {
-          mappedKey = 'site';
+          newColumnMapping.site = index;
         } else if (normalizedHeader?.includes('screen') || normalizedHeader?.includes('bildschirm')) {
-          mappedKey = 'screenId';
+          newColumnMapping.screenIds = index;
         } else if (normalizedHeader?.includes('auction') || normalizedHeader?.includes('auktion')) {
-          mappedKey = 'auctionType';
+          newColumnMapping.auctionType = index;
+        }
+      });
+      
+      setColumnMapping(newColumnMapping);
+    }
+  }, [excelData]);
+
+  // Konvertiere 2D-Array zu Array von Objekten für die Karte - mit useMemo optimiert
+  const convertToObjectArray = useMemo(() => {
+    if (!excelData || excelData.length < 2) {
+      return [];
+    }
+    
+    try {
+      const headers = excelData[0];
+      const rows = excelData.slice(1);
+      
+      // Limitiere auf die ersten 10.000 Zeilen für Performance
+      const limitedRows = rows.slice(0, 10000);
+      
+      // Filtere Zeilen basierend auf den aktiven Filtern
+      const filteredRows = limitedRows.filter(row => {
+        // Prüfe nur Filter, die tatsächlich Werte haben (nicht leer sind)
+        if (filters.network && filters.network.length > 0) {
+          const columnIndex = columnMapping.network;
+          if (columnIndex !== -1) {
+            const rowValue = row[columnIndex]?.toString() || '';
+            if (!filters.network.includes(rowValue)) {
+              return false;
+            }
+          }
         }
         
-        obj[mappedKey] = row[index];
+        if (filters.region && filters.region.length > 0) {
+          const columnIndex = columnMapping.region;
+          if (columnIndex !== -1) {
+            const rowValue = row[columnIndex]?.toString() || '';
+            if (!filters.region.includes(rowValue)) {
+              return false;
+            }
+          }
+        }
+        
+        if (filters.city && filters.city.length > 0) {
+          const columnIndex = columnMapping.city;
+          if (columnIndex !== -1) {
+            const rowValue = row[columnIndex]?.toString() || '';
+            if (!filters.city.includes(rowValue)) {
+              if (row === limitedRows[0]) {
+                console.log('Filtered out by city:', { rowValue, filters: filters.city });
+              }
+              return false;
+            }
+          }
+        }
+        
+        if (filters.site && filters.site.length > 0) {
+          const columnIndex = columnMapping.site;
+          if (columnIndex !== -1) {
+            const rowValue = row[columnIndex]?.toString() || '';
+            if (!filters.site.includes(rowValue)) {
+              if (row === limitedRows[0]) {
+                console.log('Filtered out by site:', { rowValue, filters: filters.site });
+              }
+              return false;
+            }
+          }
+        }
+        
+        if (filters.screenIds && filters.screenIds.length > 0) {
+          const columnIndex = columnMapping.screenIds;
+          if (columnIndex !== -1) {
+            const rowValue = row[columnIndex]?.toString() || '';
+            if (!filters.screenIds.includes(rowValue)) {
+              if (row === limitedRows[0]) {
+                console.log('Filtered out by screenIds:', { rowValue, filters: filters.screenIds });
+              }
+              return false;
+            }
+          }
+        }
+        
+        if (filters.auctionType && filters.auctionType.length > 0) {
+          const columnIndex = columnMapping.auctionType;
+          if (columnIndex !== -1) {
+            const rowValue = row[columnIndex]?.toString() || '';
+            if (!filters.auctionType.includes(rowValue)) {
+              if (row === limitedRows[0]) {
+                console.log('Filtered out by auctionType:', { rowValue, filters: filters.auctionType });
+              }
+              return false;
+            }
+          }
+        }
+        
+        return true;
       });
-      return obj;
-    });
-  };
+      
+
+      
+      const result = filteredRows.map((row, rowIndex) => {
+        const obj: any = {};
+        headers.forEach((header, index) => {
+          // Normalisiere Spaltennamen für die Karte
+          const normalizedHeader = header?.toString()?.toLowerCase()?.trim();
+          let mappedKey = header;
+          
+          // Mappe Spaltennamen zu den erwarteten Schlüsseln
+          if (normalizedHeader?.includes('cost') || normalizedHeader?.includes('kosten') || normalizedHeader?.includes('außenumsatz')) {
+            mappedKey = 'cost';
+          } else if (normalizedHeader?.includes('impression') || normalizedHeader?.includes('impressionen')) {
+            mappedKey = 'total_impressions';
+          } else if (normalizedHeader?.includes('play') || normalizedHeader?.includes('wiedergabe')) {
+            mappedKey = 'plays';
+          } else if (normalizedHeader?.includes('auction') || normalizedHeader?.includes('auktion') || normalizedHeader?.includes('scheduled')) {
+            mappedKey = 'auction_wins';
+          } else if (normalizedHeader?.includes('request') || normalizedHeader?.includes('anfrage')) {
+            mappedKey = 'ad_requests';
+          } else if (normalizedHeader?.includes('latitude') || normalizedHeader?.includes('lat') || normalizedHeader?.includes('breitengrad')) {
+            mappedKey = 'latitude';
+          } else if (normalizedHeader?.includes('longitude') || normalizedHeader?.includes('lng') || normalizedHeader?.includes('längengrad')) {
+            mappedKey = 'longitude';
+          } else if (normalizedHeader?.includes('network') || normalizedHeader?.includes('netzwerk')) {
+            mappedKey = 'network';
+          } else if (normalizedHeader?.includes('region') || normalizedHeader?.includes('bundesland')) {
+            mappedKey = 'region';
+          } else if (normalizedHeader?.includes('city') || normalizedHeader?.includes('stadt')) {
+            mappedKey = 'city';
+          } else if (normalizedHeader?.includes('site')) {
+            mappedKey = 'site';
+          } else if (normalizedHeader?.includes('screen') || normalizedHeader?.includes('bildschirm')) {
+            mappedKey = 'screenId';
+          } else if (normalizedHeader?.includes('auction') || normalizedHeader?.includes('auktion')) {
+            mappedKey = 'auctionType';
+          }
+          
+          obj[mappedKey] = row[index];
+        });
+        
+        return obj;
+      });
+      
+      return result;
+      
+    } catch (error) {
+      console.error('Error in convertToObjectArray:', error);
+      return [];
+    }
+  }, [excelData, filters, columnMapping]); // Abhängig von excelData, filters und columnMapping
 
   const handleDataLoaded = (data: any[][], filename: string) => {
-    setExcelData(data);
-    setFilename(filename);
-    setError('');
+    try {
+      // Validiere Daten
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        throw new Error('Ungültige Datenstruktur: Daten sind leer oder kein Array');
+      }
+      
+      if (data.length < 2) {
+        throw new Error('Daten müssen mindestens eine Header-Zeile und eine Datenzeile enthalten');
+      }
+      
+      const headers = data[0];
+      const rows = data.slice(1);
+      
+      // Setze Daten und initialisiere Filter
+      setExcelData(data);
+      setFilename(filename);
+      setError('');
+      
+      // Initialisiere Filter mit allen verfügbaren Optionen
+      const newFilters = {
+        network: [] as string[],
+        region: [] as string[],
+        city: [] as string[],
+        site: [] as string[],
+        screenIds: [] as string[],
+        auctionType: [] as string[],
+        dateRange: {
+          start: '',
+          end: ''
+        }
+      };
+      
+      // Mappe Spaltennamen zu Filter-Keys
+      const columnMapping = {
+        network: -1,
+        region: -1,
+        city: -1,
+        site: -1,
+        screenIds: -1,
+        auctionType: -1
+      };
+      
+      headers.forEach((header, index) => {
+        const normalizedHeader = header?.toString()?.toLowerCase()?.trim();
+        
+        if (normalizedHeader?.includes('network') || normalizedHeader?.includes('netzwerk')) {
+          columnMapping.network = index;
+        } else if (normalizedHeader?.includes('region') || normalizedHeader?.includes('bundesland')) {
+          columnMapping.region = index;
+        } else if (normalizedHeader?.includes('city') || normalizedHeader?.includes('stadt')) {
+          columnMapping.city = index;
+        } else if (normalizedHeader?.includes('site')) {
+          columnMapping.site = index;
+        } else if (normalizedHeader?.includes('screen') || normalizedHeader?.includes('bildschirm')) {
+          columnMapping.screenIds = index;
+        } else if (normalizedHeader?.includes('auction') || normalizedHeader?.includes('auktion')) {
+          columnMapping.auctionType = index;
+        }
+      });
+      
+      // Extrahiere eindeutige Werte für Filter (aber setze sie nicht automatisch)
+      // Die Filter bleiben leer, sodass alle Daten angezeigt werden
+      Object.entries(columnMapping).forEach(([key, columnIndex]) => {
+        if (columnIndex !== -1) {
+          const uniqueValues = new Set<string>();
+          // Limitiere auf die ersten 1000 Zeilen für Performance
+          const limitedRows = rows.slice(0, 1000);
+          limitedRows.forEach(row => {
+            const value = row[columnIndex]?.toString()?.trim();
+            if (value && value !== '') {
+              uniqueValues.add(value);
+            }
+          });
+          // Filter bleiben leer - Benutzer können sie manuell auswählen
+        }
+      });
+      
+      setFilters(newFilters);
+      
+    } catch (error) {
+      console.error('Error in handleDataLoaded:', error);
+      handleError(error instanceof Error ? error.message : 'Fehler beim Verarbeiten der Daten');
+    }
   };
 
   const handleError = (errorMessage: string) => {
@@ -110,7 +342,11 @@ export default function Home() {
       city: [],
       site: [],
       screenIds: [],
-      auctionType: []
+      auctionType: [],
+      dateRange: {
+        start: '',
+        end: ''
+      }
     });
     setColumnMapping({
       date: -1,
@@ -143,9 +379,7 @@ export default function Home() {
                 <Logo />
               </div>
             </div>
-            <div className="text-sm text-gray-600 dark:text-gray-600">
-              Digital-out-of-Home Inventory Analysis
-            </div>
+
           </div>
         </div>
       </header>
@@ -161,12 +395,8 @@ export default function Home() {
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col items-center justify-center space-y-8">
               <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold text-gray-100 dark:text-gray-100 mb-4">
-                  Willkommen bei Ströer Analytics
-                </h2>
-                <p className="text-lg text-gray-400 dark:text-gray-400 max-w-2xl">
-                  Laden Sie Ihre Excel-Datei hoch und analysieren Sie Ihre Digital-out-of-Home Daten 
-                  mit interaktiven Diagrammen, Filtern und einer Deutschland-Karte.
+                <p className="text-sm text-gray-500 dark:text-gray-500 max-w-2xl">
+                  Hier findest du einen Report als guten Startpunkt: <a href="https://core.stroeer.com/reporting/ssp?startDate=7daysAgo&endDate=today&tz=Etc%2FUTC&sort=-sspCost&dimensions=date,sspPpvNetwork,sspPpvRegion,sspPpvCity,sspPpvSiteName,auctionType,sspPpvLongitude,sspPpvLatitude,ppvScreenIds&metrics=adRequests,auctionWins,sspPpvPlays,sspPpvTotalAudience,sspCost&filters=publisherName%3D%3DPublic%20Video;trafficSource%3D%3DDirect%20PPV&granularity=day&currency=eur&isRelative=true&nonullrows=auto&count=50&page=1&plotX=date&plotY1=sspCost" target="_blank" rel="noopener noreferrer" className="text-stroer-500 hover:text-stroer-400 underline">Ströer Core Reporting</a>
                 </p>
               </div>
 
@@ -203,7 +433,7 @@ export default function Home() {
 
               {/* Germany Map */}
               <GermanyMap
-                data={convertToObjectArray(excelData)}
+                data={convertToObjectArray}
                 filters={filters}
                 selectedMetric={selectedMapMetric}
                 onMetricChange={setSelectedMapMetric}

@@ -5,28 +5,33 @@ Eine moderne Webanwendung zur Analyse von Digital-out-of-Home Daten mit interakt
 ## 🚀 Features
 
 ### 📊 Datenanalyse
-- **Interaktive Diagramme**: Drei separate Charts mit individueller Metrik-Auswahl
+- **Interaktive Diagramme**: Line- und Bar-Charts mit individueller Metrik-Auswahl
 - **Berechnete Metriken**: Play Rate und Coverage werden automatisch berechnet
-- **Erweiterte Filter**: Für Network, Region, City, Site und Screen IDs
+- **Erweiterte Filter**: Für Datum, Network, Auction Type, Region, City, Site und Screen IDs
+- **Datumsfilter**: Inklusive Start- und Enddatum-Filterung
+- **Scroll-Position**: Keine Positionsverluste beim Filtern
 - **Rohdaten-Tabelle**: Vollständige Datenansicht mit Such- und Sortierfunktionen
 
 ### 🗺️ Deutschland-Karte
-- **Bundesländer-Einfärbung**: Regionale Datenvisualisierung
-- **Städte-Kreise**: Dynamische Kreise basierend auf Metrik-Werten
+- **Bundesländer-Einfärbung**: Regionale Datenvisualisierung mit Kreisen
+- **Städte-3D-Säulen**: Dynamische 3D-Säulen mit Höhen basierend auf Metrik-Werten
 - **Site-Marker**: Präzise Markierungen für einzelne Standorte
-- **Zoom-Funktionalität**: Responsive Kreise die sich anpassen
-- **Tooltips**: Detaillierte Informationen bei Klick
+- **Zoom-Funktionalität**: Responsive Elemente die sich an Zoom anpassen
+- **Tooltips**: Detaillierte Informationen bei Klick (ohne Datensatz-Anzahl)
+- **Filter-Synchronisation**: Map reagiert auf alle Filter-Änderungen
 
 ### 📁 File-Management
 - **Excel-Upload**: Drag & Drop für .xlsx und .csv Dateien
 - **FileInfo-Komponente**: Übersicht über aktuelle Datei
 - **File-Austausch**: Einfaches Hochladen neuer Dateien
 - **Statistiken**: Zeilen- und Spaltenanzahl
+- **Report-Link**: Direkter Zugang zum Ströer Core Reporting
 
 ### 🎨 Design
 - **Modernes UI**: Booking.com Look & Feel mit Ströer-Farben
 - **Dark Mode**: Standardmäßig aktiviert
 - **Responsive Layout**: Optimiert für alle Bildschirmgrößen
+- **Minimalistisches Interface**: Klare Startseite ohne Ablenkung
 - **Professionelles Logo**: "Analytics" Branding
 
 ## 🛠️ Technologie-Stack
@@ -125,9 +130,19 @@ src/
 
 ## 🗺️ Karten-Level
 
-- **Bundesländer**: Regionale Einfärbung
-- **Städte**: Dynamische Kreise
-- **Sites**: Präzise Marker
+- **Bundesländer**: Regionale Einfärbung mit dynamischen Kreisen
+- **Städte**: Beeindruckende 3D-Säulen mit CSS-Transformationen
+- **Sites**: Präzise Marker für Einzelstandorte
+
+## 🎛️ Filter-System
+
+- **Datumsfilter**: Start- und Enddatum (inklusive)
+- **Network**: Netzwerk-Filterung
+- **Auction Type**: Auktions-Typ-Filterung  
+- **Bundesland**: Regionale Filterung
+- **Stadt**: Stadt-spezifische Filterung
+- **Site**: Standort-Filterung
+- **Screen ID**: Screen-spezifische Filterung
 
 ## 🚀 Deployment
 

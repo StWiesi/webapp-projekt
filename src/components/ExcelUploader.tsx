@@ -15,19 +15,23 @@ export default function ExcelUploader({ onDataLoaded, onError }: ExcelUploaderPr
 
   const processFile = useCallback(async (file: File) => {
     setIsLoading(true);
+    console.log('Starting file processing:', file.name, file.size, file.type);
     
     try {
       // Validiere Dateityp
       const validTypes = [
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
         'application/vnd.ms-excel', // .xls
-        'application/vnd.ms-excel.sheet.macroEnabled.12' // .xlsm
+        'application/vnd.ms-excel.sheet.macroEnabled.12', // .xlsm
+        'application/octet-stream' // Fallback für manche Systeme
       ];
       
       const isValidType = validTypes.includes(file.type) || 
                          file.name.toLowerCase().endsWith('.xlsx') || 
                          file.name.toLowerCase().endsWith('.xls') ||
                          file.name.toLowerCase().endsWith('.xlsm');
+      
+      console.log('File validation:', { fileType: file.type, isValidType, fileName: file.name });
       
       if (!isValidType) {
         throw new Error('Bitte wählen Sie eine gültige Excel-Datei (.xlsx, .xls, .xlsm)');
@@ -38,8 +42,19 @@ export default function ExcelUploader({ onDataLoaded, onError }: ExcelUploaderPr
         throw new Error('Datei ist zu groß. Maximale Größe: 20MB');
       }
 
+      console.log('Reading file as ArrayBuffer...');
       const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data, { type: 'array' });
+      console.log('ArrayBuffer size:', data.byteLength);
+      
+      console.log('Parsing with XLSX...');
+      const workbook = XLSX.read(data, { 
+        type: 'array',
+        cellDates: true,
+        cellNF: false,
+        cellText: false
+      });
+      
+      console.log('Workbook sheets:', workbook.SheetNames);
       
       // Erstes Arbeitsblatt verwenden
       const firstSheetName = workbook.SheetNames[0];
@@ -48,22 +63,41 @@ export default function ExcelUploader({ onDataLoaded, onError }: ExcelUploaderPr
       }
       
       const worksheet = workbook.Sheets[firstSheetName];
+      console.log('Worksheet range:', worksheet['!ref']);
       
       // Konvertiere zu Array von Arrays
+      console.log('Converting to JSON...');
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
         header: 1,
         raw: false,
-        dateNF: 'dd.mm.yyyy'
+        dateNF: 'dd.mm.yyyy',
+        defval: ''
+      });
+      
+      console.log('JSON data preview:', {
+        totalRows: jsonData.length,
+        firstRow: jsonData[0],
+        sampleRows: jsonData.slice(1, 3)
       });
       
       if (!jsonData || jsonData.length === 0) {
         throw new Error('Excel-Datei ist leer oder enthält keine Daten');
       }
 
+      if (jsonData.length < 2) {
+        throw new Error('Excel-Datei muss mindestens eine Header-Zeile und eine Datenzeile enthalten');
+      }
+
+      console.log('Calling onDataLoaded with processed data');
       onDataLoaded(jsonData as any[][], file.name);
       
     } catch (error) {
       console.error('Fehler beim Verarbeiten der Excel-Datei:', error);
+      console.error('Error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
       onError(error instanceof Error ? error.message : 'Unbekannter Fehler beim Verarbeiten der Datei');
     } finally {
       setIsLoading(false);

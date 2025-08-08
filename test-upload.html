@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Upload Test</title>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h1>Excel Upload Test</h1>
+    <p>Diese Seite erstellt eine Test-Excel-Datei zum Testen des Uploads.</p>
+    
+    <button onclick="createTestFile()">Test-Excel-Datei erstellen</button>
+    
+    <script>
+        function createTestFile() {
+            // Test-Daten
+            const testData = [
+                ['Datum', 'Außenumsatz', 'Impressions', 'Plays', 'Bundesland', 'Stadt'],
+                ['2024-01-01', '1000', '5000', '2500', 'Bayern', 'München'],
+                ['2024-01-02', '1200', '6000', '3000', 'Bayern', 'München'],
+                ['2024-01-01', '800', '4000', '2000', 'NRW', 'Köln'],
+                ['2024-01-02', '900', '4500', '2250', 'NRW', 'Köln']
+            ];
+            
+            // Workbook erstellen
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(testData);
+            XLSX.utils.book_append_sheet(wb, ws, "TestData");
+            
+            // Datei herunterladen
+            XLSX.writeFile(wb, "test-data.xlsx");
+            
+            alert("Test-Excel-Datei 'test-data.xlsx' wurde erstellt!");
+        }
+    </script>
+</body>
+</html>

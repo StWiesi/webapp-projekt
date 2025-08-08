@@ -40,12 +40,12 @@ interface LocationData {
 
 const METRIC_OPTIONS: { value: MetricType; label: string; color: string }[] = [
   { value: 'cost', label: 'Außenumsatz', color: '#FF6B00' },
-  { value: 'total_impressions', label: 'Impressions', color: '#003366' },
-  { value: 'plays', label: 'Plays', color: '#00a699' },
-  { value: 'auction_wins', label: 'Scheduled Plays', color: '#ffb020' },
-  { value: 'ad_requests', label: 'Ad Requests', color: '#8b5cf6' },
-  { value: 'coverage', label: 'Coverage', color: '#06b6d4' },
-  { value: 'play_rate', label: 'Play Rate', color: '#84cc16' }
+  { value: 'total_impressions', label: 'Impressions', color: '#FF6B00' },
+  { value: 'plays', label: 'Plays', color: '#FF6B00' },
+  { value: 'auction_wins', label: 'Scheduled Plays', color: '#FF6B00' },
+  { value: 'ad_requests', label: 'Ad Requests', color: '#FF6B00' },
+  { value: 'coverage', label: 'Coverage', color: '#FF6B00' },
+  { value: 'play_rate', label: 'Play Rate', color: '#FF6B00' }
 ];
 
 // Google Maps Interface erweitern
@@ -60,6 +60,7 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
   const mapInstanceRef = useRef<any>(null);
   const dataLayerRef = useRef<any>(null);
   const circlesRef = useRef<any[]>([]);
+  const columnsRef = useRef<any[]>([]);
   const [mapLevel, setMapLevel] = useState<MapLevel>('region');
   const [localSelectedMetric, setLocalSelectedMetric] = useState<MetricType>('cost');
   const [geoJsonData, setGeoJsonData] = useState<any>(null);
@@ -67,8 +68,20 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
   const [currentZoom, setCurrentZoom] = useState(6);
   const [googleLoaded, setGoogleLoaded] = useState(false);
   const scriptLoadedRef = useRef(false);
+  const scrollPositionRef = useRef<number>(0);
 
   const currentMetric = (selectedMetric || localSelectedMetric) as MetricType;
+
+  // Speichere und stelle Scroll-Position wieder her
+  const saveScrollPosition = () => {
+    scrollPositionRef.current = window.scrollY;
+  };
+
+  const restoreScrollPosition = () => {
+    if (scrollPositionRef.current > 0) {
+      window.scrollTo(0, scrollPositionRef.current);
+    }
+  };
 
   // Lade GeoJSON-Daten
   useEffect(() => {
@@ -96,17 +109,17 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
     loadGeoJsonData();
   }, [mapLevel]);
 
-  // Extrahiere Standorte aus den Daten
+  // Verarbeite Daten für die Karte - optimiert für Performance
   const locationsData = useMemo((): LocationData[] => {
     if (!data.length) return [];
 
-    console.log('=== START DATA PROCESSING ===');
-    console.log('Raw data sample:', data.slice(0, 3));
+    // Limitiere auf die ersten 10.000 Zeilen für Performance
+    const limitedData = data.slice(0, 10000);
 
     // Gruppiere Daten nach Standort
     const locationGroups = new Map<string, LocationData>();
 
-    data.forEach((item, index) => {
+    limitedData.forEach((item) => {
       let locationName = '';
       
       // Bestimme Standort basierend auf Map-Level
@@ -118,32 +131,11 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
         locationName = item.site || item.website || item.Site || item.Website || 'Unbekannt';
       }
 
-      // Debug: Zeige die ersten 5 Datensätze
-      if (index < 5) {
-        console.log(`Data item ${index}:`, {
-          city: item.city,
-          stadt: item.stadt,
-          City: item.City,
-          Stadt: item.Stadt,
-          extractedLocationName: locationName,
-          mapLevel
-        });
-      }
-
       if (!locationName || locationName === 'Unbekannt') {
-        if (index < 5) {
-          console.log(`Skipping item ${index} - no valid location name`);
-        }
         return;
       }
 
-      // Filtere basierend auf ausgewählten Filtern
-      if (filters.network.length > 0 && !filters.network.includes(item.network || '')) return;
-      if (filters.region.length > 0 && !filters.region.includes(item.region || item.bundesland || item.Region || item.Bundesland || '')) return;
-      if (filters.city.length > 0 && !filters.city.includes(item.city || item.stadt || item.City || item.Stadt || '')) return;
-      if (filters.site.length > 0 && !filters.site.includes(item.site || item.website || item.Site || item.Website || '')) return;
-      if (filters.screenIds.length > 0 && !filters.screenIds.includes(item.screenIds || '')) return;
-      if (filters.auctionType.length > 0 && !filters.auctionType.includes(item.auctionType || '')) return;
+      // Daten sind bereits gefiltert - keine zusätzliche Filterung nötig
 
       if (!locationGroups.has(locationName)) {
         locationGroups.set(locationName, {
@@ -168,7 +160,7 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
       const location = locationGroups.get(locationName)!;
       location.count++;
 
-      // Summiere Metriken
+      // Summiere Metriken - optimiert
       if (item.cost) location.metrics.cost += parseFloat(item.cost) || 0;
       if (item.total_impressions) location.metrics.total_impressions += parseFloat(item.total_impressions) || 0;
       if (item.plays) location.metrics.plays += parseFloat(item.plays) || 0;
@@ -186,22 +178,8 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
         : 0;
     });
 
-    const result = Array.from(locationGroups.values());
-    
-    console.log('=== PROCESSING RESULTS ===');
-    console.log(`Map level: ${mapLevel}`);
-    console.log(`Total data items: ${data.length}`);
-    console.log(`Processed locations: ${result.length}`);
-    console.log('All processed locations:', result.map(loc => ({
-      name: loc.name,
-      count: loc.count,
-      cost: loc.metrics.cost,
-      hasCoordinates: !!loc.coordinates
-    })));
-    console.log('=== END DATA PROCESSING ===');
-
-    return result;
-  }, [data, mapLevel, filters]);
+        return Array.from(locationGroups.values());
+  }, [data, mapLevel]); // Nur abhängig von data und mapLevel, da Daten bereits gefiltert sind
 
   // Hilfsfunktion für Bundesland-Namen-Normalisierung
   const normalizeBundeslandName = (name: string): string => {
@@ -366,12 +344,6 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
             ${formattedValue}
           </span>
         </div>
-        <div style="margin-bottom: 4px;">
-          <span style="color: #6b7280;">Datensätze:</span>
-          <span style="font-weight: bold; color: #111827; margin-left: 8px;">
-            ${locationData.count}
-          </span>
-        </div>
     `;
 
     // Zeige zusätzliche Metriken für Kontext
@@ -433,6 +405,292 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
     return Math.max(minRadius, Math.min(calculatedRadius, 1000));
   };
 
+  const calculateColumnHeight = (metricValue: number, maxValue: number, zoom: number): number => {
+    if (maxValue === 0) return 1000;
+    
+    const intensity = getColorIntensity(metricValue, maxValue);
+    
+    // Basis-Höhe basierend auf Zoom-Level
+    const baseHeight = 1000; // 1km in Metern
+    const maxHeight = 10000; // 10km in Metern
+    
+    const baseHeightWithIntensity = baseHeight + (intensity * (maxHeight - baseHeight));
+    
+    // Zoom-Faktoren für Säulen
+    let zoomFactor: number;
+    if (zoom <= 4) {
+      zoomFactor = 0.5; // Kleine Säulen bei Übersicht
+    } else if (zoom <= 6) {
+      zoomFactor = 0.8 + (zoom - 4) * 0.3; // 0.8 - 1.4
+    } else if (zoom <= 8) {
+      zoomFactor = 1.4 + (zoom - 6) * 0.5; // 1.4 - 2.4
+    } else if (zoom <= 10) {
+      zoomFactor = 2.4 + (zoom - 8) * 0.8; // 2.4 - 4.0
+    } else {
+      zoomFactor = 4.0 + (zoom - 10) * 1.0; // 4.0+
+    }
+    
+    const calculatedHeight = baseHeightWithIntensity * zoomFactor;
+    
+    return Math.max(500, Math.min(calculatedHeight, 20000)); // Min 500m, Max 20km
+  };
+
+  // 3D Säulen OverlayView Klasse - wird nur definiert wenn Google Maps geladen ist
+  let Column3DOverlay: any = null;
+
+  const createColumn3DOverlayClass = () => {
+    if (!window.google || !window.google.maps) return null;
+    
+    return class Column3DOverlay extends window.google.maps.OverlayView {
+      private div: HTMLElement | null = null;
+      private location: LocationData;
+      private coordinates: { lat: number; lng: number };
+      private map: any;
+      private metricValue: number;
+      private maxMetricValue: number;
+      private currentMetric: MetricType;
+      private tooltip: any;
+
+      constructor(
+        location: LocationData, 
+        coordinates: { lat: number; lng: number }, 
+        map: any, 
+        metricValue: number, 
+        maxMetricValue: number,
+        currentMetric: MetricType
+      ) {
+        super();
+        this.location = location;
+        this.coordinates = coordinates;
+        this.map = map;
+        this.metricValue = metricValue;
+        this.maxMetricValue = maxMetricValue;
+        this.currentMetric = currentMetric;
+        this.div = null;
+        this.tooltip = null;
+        this.setMap(map);
+      }
+
+      onAdd(): void {
+        const div = document.createElement('div');
+        div.style.position = 'absolute';
+        div.style.cursor = 'pointer';
+        div.style.userSelect = 'none';
+        div.style.transform = 'translate(-50%, -100%)';
+        div.style.zIndex = Math.floor((this.metricValue / this.maxMetricValue) * 1000).toString();
+        
+        this.div = div;
+        this.getPanes().overlayImage.appendChild(div);
+        
+        // Tooltip erstellen
+        this.tooltip = new window.google.maps.InfoWindow({
+          content: generateTooltipContent(this.location, this.metricValue)
+        });
+
+        // Click Event
+        div.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const projection = this.getProjection();
+          const point = projection.fromLatLngToDivPixel(
+            new window.google.maps.LatLng(this.coordinates.lat, this.coordinates.lng)
+          );
+          this.tooltip.setPosition(new window.google.maps.LatLng(this.coordinates.lat, this.coordinates.lng));
+          this.tooltip.open(this.map);
+        });
+
+        // Hover Events
+        div.addEventListener('mouseenter', () => {
+          if (div) div.style.filter = 'brightness(1.2) drop-shadow(0 4px 8px rgba(0,0,0,0.3))';
+        });
+
+        div.addEventListener('mouseleave', () => {
+          if (div) div.style.filter = 'brightness(1.0) drop-shadow(0 2px 4px rgba(0,0,0,0.2))';
+        });
+
+        this.draw();
+      }
+
+      draw(): void {
+        if (!this.div) return;
+
+        const projection = this.getProjection();
+        if (!projection) return;
+
+        const point = projection.fromLatLngToDivPixel(
+          new window.google.maps.LatLng(this.coordinates.lat, this.coordinates.lng)
+        );
+
+        if (!point) return;
+
+        const zoom = this.map.getZoom();
+        const baseWidth = Math.max(8, Math.min(20, zoom * 1.5)); // Responsive Breite
+        const height = this.calculateHeight(zoom);
+        
+        // 3D Säulen HTML mit CSS 3D-Effekten
+        this.div.innerHTML = `
+          <div style="
+            position: relative;
+            width: ${baseWidth}px;
+            height: ${height}px;
+            transform-style: preserve-3d;
+            transform: perspective(1000px) rotateX(60deg);
+          ">
+            <!-- Hauptsäule -->
+            <div style="
+              position: absolute;
+              bottom: 0;
+              left: 50%;
+              transform: translateX(-50%);
+              width: ${baseWidth}px;
+              height: ${height * 0.8}px;
+              background: linear-gradient(180deg, #FF6B00 0%, #FF4500 100%);
+              border-radius: 2px 2px 0 0;
+              box-shadow: 
+                0 2px 4px rgba(0,0,0,0.2),
+                inset 0 1px 0 rgba(255,255,255,0.3);
+              border: 1px solid #E55A00;
+            "></div>
+            
+            <!-- 3D-Tiefe (rechte Seite) -->
+            <div style="
+              position: absolute;
+              bottom: 0;
+              left: calc(50% + ${baseWidth * 0.3}px);
+              transform: translateX(-50%) skewY(-30deg);
+              width: ${baseWidth * 0.3}px;
+              height: ${height * 0.8}px;
+              background: linear-gradient(180deg, #E55A00 0%, #CC4A00 100%);
+              border-radius: 0 2px 0 0;
+              box-shadow: inset -1px 0 0 rgba(0,0,0,0.2);
+            "></div>
+            
+            <!-- 3D-Tiefe (linke Seite) -->
+            <div style="
+              position: absolute;
+              bottom: 0;
+              left: calc(50% - ${baseWidth * 0.3}px);
+              transform: translateX(-50%) skewY(30deg);
+              width: ${baseWidth * 0.3}px;
+              height: ${height * 0.8}px;
+              background: linear-gradient(180deg, #FF8C00 0%, #FF6B00 100%);
+              border-radius: 2px 0 0 0;
+              box-shadow: inset 1px 0 0 rgba(255,255,255,0.3);
+            "></div>
+            
+            <!-- Schatten -->
+            <div style="
+              position: absolute;
+              bottom: -4px;
+              left: 50%;
+              transform: translateX(-50%) rotateX(60deg);
+              width: ${baseWidth * 1.5}px;
+              height: ${baseWidth * 0.5}px;
+              background: rgba(0,0,0,0.3);
+              border-radius: 50%;
+              filter: blur(2px);
+            "></div>
+            
+            
+          </div>
+        `;
+
+        this.div.style.left = point.x + 'px';
+        this.div.style.top = point.y + 'px';
+      }
+
+      private calculateHeight(zoom: number): number {
+        if (this.maxMetricValue === 0) return 50;
+        
+        const intensity = this.metricValue / this.maxMetricValue;
+        const baseHeight = 30;
+        const maxHeight = 200;
+        const zoomFactor = Math.max(0.5, Math.min(2.0, zoom / 8));
+        
+        return baseHeight + (intensity * (maxHeight - baseHeight)) * zoomFactor;
+      }
+
+      updateMetric(newMetricValue: number, newMaxMetricValue: number): void {
+        this.metricValue = newMetricValue;
+        this.maxMetricValue = newMaxMetricValue;
+        if (this.div) {
+          this.div.style.zIndex = Math.floor((this.metricValue / this.maxMetricValue) * 1000).toString();
+        }
+        this.draw();
+      }
+
+      onRemove(): void {
+        if (this.div && this.div.parentNode) {
+          this.div.parentNode.removeChild(this.div);
+          this.div = null;
+        }
+        if (this.tooltip) {
+          this.tooltip.close();
+          this.tooltip = null;
+        }
+      }
+    };
+  };
+
+  const create3DColumn = (location: LocationData, coordinates: { lat: number; lng: number }, map: any) => {
+    const metricValue = getMetricValue(location, currentMetric);
+    const maxMetricValue = Math.max(...locationsData.map(loc => getMetricValue(loc, currentMetric)));
+    
+    // Erstelle Column3DOverlay Klasse wenn noch nicht erstellt
+    if (!Column3DOverlay) {
+      Column3DOverlay = createColumn3DOverlayClass();
+    }
+    
+    // Fallback zu normalen Markern wenn 3D-Säulen nicht verfügbar sind
+    if (!Column3DOverlay) {
+      console.warn('3D columns not available, using fallback markers');
+      const marker = new window.google.maps.Marker({
+        position: coordinates,
+        map: map,
+        title: `${location.name}: ${formatMetricValue(metricValue)}`,
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 8,
+          fillColor: '#FF6B00',
+          fillOpacity: 0.8,
+          strokeColor: '#FF4500',
+          strokeWeight: 2
+        }
+      });
+      
+      // Tooltip für den Marker
+      const tooltip = new window.google.maps.InfoWindow({
+        content: generateTooltipContent(location, metricValue)
+      });
+
+      marker.addListener('click', () => {
+        tooltip.open(map, marker);
+      });
+
+      (marker as any).locationData = location;
+      (marker as any).metricValue = metricValue;
+      (marker as any).maxMetricValue = maxMetricValue;
+      
+      return marker;
+    }
+    
+    // Erstelle 3D-Säule mit OverlayView
+    const column = new Column3DOverlay(
+      location, 
+      coordinates, 
+      map, 
+      metricValue, 
+      maxMetricValue,
+      currentMetric
+    );
+
+    // Speichere Referenz für Updates
+    (column as any).locationData = location;
+    (column as any).metricValue = metricValue;
+    (column as any).maxMetricValue = maxMetricValue;
+    
+    return column;
+  };
+
   const createGoogleMap = useCallback(() => {
     if (!mapRef.current || !geoJsonData || !googleLoaded) return;
 
@@ -486,7 +744,7 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
 
     mapInstanceRef.current = map;
 
-    // Zoom-Change Event mit Kreis-Updates
+    // Zoom-Change Event mit Kreis- und Säulen-Updates
     map.addListener('zoom_changed', () => {
       const newZoom = map.getZoom();
       setCurrentZoom(newZoom);
@@ -498,6 +756,15 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
           const metricValue = getMetricValue(location, currentMetric);
           const newRadius = calculateCircleRadius(metricValue, maxMetricValue, newZoom);
           circle.setRadius(newRadius);
+        }
+      });
+      
+      // Aktualisiere 3D-Säulen basierend auf neuem Zoom
+      columnsRef.current.forEach(column => {
+        const location = (column as any).locationData;
+        if (location && column.updateMetric) {
+          const metricValue = getMetricValue(location, currentMetric);
+          column.updateMetric(metricValue, maxMetricValue);
         }
       });
     });
@@ -613,9 +880,11 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
 
     dataLayerRef.current.setMap(map);
 
-    // Entferne alte Kreise
+    // Entferne alte Kreise und Säulen
     circlesRef.current.forEach(circle => circle.setMap(null));
     circlesRef.current = [];
+    columnsRef.current.forEach(column => column.setMap(null));
+    columnsRef.current = [];
 
     // Zeichne Kreise nur für Städte und Sites
     if (mapLevel !== 'region') {
@@ -807,69 +1076,21 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
           console.log(`Marker created successfully for "${location.name}"`);
 
         } else {
-          // Für Städte: Verwende Kreise
-          // Berechne Radius basierend auf Metrikwert - mit vernünftigen Größen
-          let radius: number;
-          if (maxMetricValue === 0) {
-            radius = 10000; // 10km Basis-Größe
-          } else {
-            const intensity = getColorIntensity(metricValue, maxMetricValue);
-            // Skaliere zwischen 10km und 30km basierend auf Intensität
-            radius = 10000 + (intensity * 20000);
-          }
-
-          console.log(`Creating circle for "${location.name}":`, {
+          // Für Städte: Verwende 3D-Säulen anstelle von Kreisen
+          console.log(`Creating 3D column for "${location.name}":`, {
             coordinates,
-            radius: `${Math.round(radius/1000)}km`,
             color,
             metricValue,
             intensity: colorIntensity,
             isFallback: coordinates.lat === 51.1657 && coordinates.lng === 10.4515
           });
 
-          const circle = new window.google.maps.Circle({
-            center: coordinates,
-            radius: radius,
-            fillColor: color,
-            fillOpacity: 0.8,
-            strokeColor: color,
-            strokeWeight: 3,
-            strokeOpacity: 1.0,
-            map: map
-          });
+          // Erstelle 3D-Säule
+          const column = create3DColumn(location, coordinates, map);
+          columnsRef.current.push(column);
+                }
+    });
 
-          circle.locationData = location;
-
-          // Click-Event für Kreis (nur einfacher Click, nicht Doppelklick)
-          circle.addListener('click', (event: any) => {
-            console.log(`Circle clicked: "${location.name}" at position:`, event.latLng);
-            infoWindow.setPosition(event.latLng);
-            infoWindow.open(map);
-            console.log(`InfoWindow opened for "${location.name}"`);
-          });
-
-          // Hover-Effekte für Kreise
-          circle.addListener('mouseover', () => {
-            circle.setOptions({
-              fillOpacity: 1.0,
-              strokeWeight: 4
-            });
-          });
-
-          circle.addListener('mouseout', () => {
-            circle.setOptions({
-              fillOpacity: 0.8,
-              strokeWeight: 3
-            });
-          });
-
-          circlesRef.current.push(circle);
-          console.log(`Circle created successfully for "${location.name}"`);
-        }
-      });
-      
-      console.log(`=== END CIRCLE/MARKER CREATION ===`);
-      console.log(`Total ${mapLevel === 'site' ? 'markers' : 'circles'} created: ${circlesRef.current.length}`);
     }
   }, [geoJsonData, locationsData, currentMetric, mapLevel, googleLoaded]);
 
@@ -882,8 +1103,9 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
       script.async = true;
       script.defer = true;
       script.onload = () => {
-        console.log('Google Maps API loaded successfully');
         setGoogleLoaded(true);
+        // Initialisiere 3D-Säulen-Klasse nach dem Laden
+        Column3DOverlay = createColumn3DOverlayClass();
       };
       script.onerror = () => {
         console.error('Failed to load Google Maps API');
@@ -900,8 +1122,13 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
     if (googleLoaded && !isLoading && geoJsonData) {
       // Erstelle Karte nur bei wichtigen Änderungen, nicht bei jedem Zoom
       createGoogleMap();
+      
+      // Stelle Scroll-Position nach Karten-Erstellung wieder her
+      setTimeout(() => {
+        restoreScrollPosition();
+      }, 100);
     }
-  }, [googleLoaded, isLoading, geoJsonData, mapLevel, currentMetric]); // Entferne createGoogleMap aus Dependencies
+  }, [googleLoaded, isLoading, geoJsonData, mapLevel, currentMetric, locationsData]); // Füge locationsData hinzu
 
   const handleMetricChange = (metric: MetricType) => {
     setLocalSelectedMetric(metric);
@@ -951,7 +1178,10 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
             </label>
             <select
               value={mapLevel}
-              onChange={(e) => setMapLevel(e.target.value as MapLevel)}
+              onChange={(e) => {
+                saveScrollPosition(); // Speichere Scroll-Position vor Level-Wechsel
+                setMapLevel(e.target.value as MapLevel);
+              }}
               className="input-field"
             >
               <option value="region">Bundesländer</option>

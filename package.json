@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:fast": "NODE_ENV=development next dev --turbo",
+    "dev:minimal": "NODE_ENV=development next dev --turbo --no-lint --no-type-check",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

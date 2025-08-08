@@ -2,6 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom 3D Column Styles */
+.column-3d {
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+.column-3d:hover {
+  transform: perspective(1000px) rotateX(60deg) scale(1.1);
+  transition: transform 0.3s ease;
+}
+
+/* Google Maps Overlay Styles */
+.gm-style .column-overlay {
+  pointer-events: auto;
+  user-select: none;
+}
+
+/* 3D Column Animation */
+@keyframes columnPulse {
+  0% { transform: perspective(1000px) rotateX(60deg) scale(1); }
+  50% { transform: perspective(1000px) rotateX(60deg) scale(1.05); }
+  100% { transform: perspective(1000px) rotateX(60deg) scale(1); }
+}
+
+.column-3d-animate {
+  animation: columnPulse 2s ease-in-out infinite;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #374151;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #6b7280;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
 :root {
   --background: #111827;
   --foreground: #f9fafb;
