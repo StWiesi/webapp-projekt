@@ -17,6 +17,8 @@ export default function Home() {
   const [excelData, setExcelData] = useState<any[][] | null>(null);
   const [filename, setFilename] = useState<string>('');
   const [error, setError] = useState<string>('');
+  const [isDashboardReady, setIsDashboardReady] = useState(false);
+
   const [filters, setFilters] = useState({
     network: [] as string[],
     region: [] as string[],
@@ -179,7 +181,7 @@ export default function Home() {
       
 
       
-      const result = filteredRows.map((row, rowIndex) => {
+      const result = filteredRows.map((row) => {
         const obj: any = {};
         headers.forEach((header, index) => {
           // Normalisiere Spaltennamen für die Karte
@@ -228,6 +230,20 @@ export default function Home() {
       return [];
     }
   }, [excelData, filters, columnMapping]); // Abhängig von excelData, filters und columnMapping
+
+  // Warte bis alle Daten verarbeitet sind, bevor Dashboard angezeigt wird
+  React.useEffect(() => {
+    if (excelData && convertToObjectArray.length > 0 && columnMapping.cost !== -1) {
+      // Warte zusätzlich 1 Sekunde damit alle Komponenten geladen sind
+      const timer = setTimeout(() => {
+        setIsDashboardReady(true);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    } else {
+      setIsDashboardReady(false);
+    }
+  }, [excelData, convertToObjectArray, columnMapping]);
 
   const handleDataLoaded = (data: any[][], filename: string) => {
     try {
@@ -292,7 +308,7 @@ export default function Home() {
       
       // Extrahiere eindeutige Werte für Filter (aber setze sie nicht automatisch)
       // Die Filter bleiben leer, sodass alle Daten angezeigt werden
-      Object.entries(columnMapping).forEach(([key, columnIndex]) => {
+      Object.entries(columnMapping).forEach(([, columnIndex]) => {
         if (columnIndex !== -1) {
           const uniqueValues = new Set<string>();
           // Verarbeite alle Zeilen für vollständige Filter-Optionen
@@ -317,12 +333,14 @@ export default function Home() {
     setError(errorMessage);
     setExcelData(null);
     setFilename('');
+    setIsDashboardReady(false);
   };
 
   const handleClear = () => {
     setExcelData(null);
     setFilename('');
     setError('');
+    setIsDashboardReady(false);
     setFilters({
       network: [],
       region: [],
@@ -378,7 +396,7 @@ export default function Home() {
         )}
 
         {/* Upload oder Tabelle */}
-        {!excelData ? (
+        {!excelData || !isDashboardReady ? (
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col items-center justify-center space-y-8">
               <div className="text-center mb-8">
@@ -387,11 +405,39 @@ export default function Home() {
                 </p>
               </div>
 
-              <ExcelUploader 
-                onDataLoaded={handleDataLoaded}
-                onError={handleError}
-              />
+
+
+              {!excelData ? (
+                <ExcelUploader 
+                  onDataLoaded={handleDataLoaded}
+                  onError={handleError}
+                />
+              ) : (
+                /* Dashboard wird vorbereitet */
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-stroer-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div className="spinning-globe">
+                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" strokeWidth={2}/>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2 12h20"/>
+                      </svg>
+                    </div>
+                  </div>
+                  <h2 className="text-xl font-semibold text-gray-100 dark:text-gray-100 mb-2">
+                    Dashboard wird vorbereitet...
+                  </h2>
+                  <p className="text-sm text-gray-400 dark:text-gray-400 mb-4">
+                    Daten werden verarbeitet und Komponenten geladen
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500">
+                    Geschätzte Zeit: 2-3 Sekunden
+                  </p>
+                </div>
+              )}
             </div>
+            
+
           </div>
         ) : (
           <div className="macbook-optimized">
@@ -445,7 +491,6 @@ export default function Home() {
                 <GermanyMap
                   data={convertToObjectArray}
                   filters={filters}
-                  columnMapping={columnMapping}
                   selectedMetric={selectedMetric}
                   onMetricChange={setSelectedMetric}
                 />

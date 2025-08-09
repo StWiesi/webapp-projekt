@@ -2,7 +2,7 @@
 
 import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, FileText, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, FileText, AlertCircle } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 interface ExcelUploaderProps {
@@ -12,21 +12,16 @@ interface ExcelUploaderProps {
 
 export default function ExcelUploader({ onDataLoaded, onError }: ExcelUploaderProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [processingStep, setProcessingStep] = useState('');
   const [estimatedTime, setEstimatedTime] = useState('');
   const [currentFile, setCurrentFile] = useState<File | null>(null);
 
   const processFile = useCallback(async (file: File) => {
     setIsLoading(true);
-    setUploadProgress(0);
-    setProcessingStep('Datei wird gelesen...');
     setCurrentFile(file);
     
     // Schätze die Verarbeitungszeit basierend auf der Dateigröße
     const fileSizeInMB = file.size / (1024 * 1024);
-    // Basis-Zeit für Verzögerungen: 300ms + 400ms + 300ms + 300ms + 200ms + 1500ms = 3 Sekunden
-    let estimatedSeconds = Math.max(3, Math.ceil(fileSizeInMB * 0.2)); // 0.2 Sekunden pro MB, mindestens 3 Sekunden
+    const estimatedSeconds = Math.max(2, Math.ceil(fileSizeInMB * 0.2)); // Realistisch: 0.2 Sekunden pro MB + Dashboard-Zeit
     setEstimatedTime(`${estimatedSeconds} Sekunden`);
     
     try {
@@ -56,16 +51,9 @@ export default function ExcelUploader({ onDataLoaded, onError }: ExcelUploaderPr
         throw new Error(`Datei ist zu groß. Aktuelle Größe: ${fileSizeInMB}MB, Maximale Größe: ${maxSizeInMB}MB`);
       }
 
-      // Verzögerung für bessere UX
-      await new Promise(resolve => setTimeout(resolve, 300));
-      setUploadProgress(20);
-      setProcessingStep('Excel-Datei wird geparst...');
+      // Verarbeite Datei direkt ohne künstliche Verzögerungen
       const data = await file.arrayBuffer();
       
-      // Verzögerung für bessere UX
-      await new Promise(resolve => setTimeout(resolve, 400));
-      setUploadProgress(40);
-      setProcessingStep('Daten werden verarbeitet...');
       const workbook = XLSX.read(data, { 
         type: 'array',
         cellDates: true,
@@ -79,10 +67,6 @@ export default function ExcelUploader({ onDataLoaded, onError }: ExcelUploaderPr
         throw new Error('Excel-Datei enthält keine Arbeitsblätter');
       }
       
-      // Verzögerung für bessere UX
-      await new Promise(resolve => setTimeout(resolve, 300));
-      setUploadProgress(60);
-      setProcessingStep('Arbeitsblatt wird konvertiert...');
       const worksheet = workbook.Sheets[firstSheetName];
       
       // Konvertiere zu Array von Arrays
@@ -93,11 +77,6 @@ export default function ExcelUploader({ onDataLoaded, onError }: ExcelUploaderPr
         defval: ''
       });
       
-      // Verzögerung für bessere UX
-      await new Promise(resolve => setTimeout(resolve, 300));
-      setUploadProgress(80);
-      setProcessingStep('Daten werden validiert...');
-      
       if (!jsonData || jsonData.length === 0) {
         throw new Error('Excel-Datei ist leer oder enthält keine Daten');
       }
@@ -106,23 +85,13 @@ export default function ExcelUploader({ onDataLoaded, onError }: ExcelUploaderPr
         throw new Error('Excel-Datei muss mindestens eine Header-Zeile und eine Datenzeile enthalten');
       }
 
-      // Verzögerung für bessere UX
-      await new Promise(resolve => setTimeout(resolve, 200));
-      setUploadProgress(95);
-      setProcessingStep('Daten werden geladen...');
+      // Übergebe Daten sofort - Rest passiert im Dashboard
       onDataLoaded(jsonData as any[][], file.name);
       
-      setUploadProgress(100);
-      setProcessingStep('Fertig!');
-      
-      // Kurz warten, damit der Benutzer "Fertig!" sehen kann
-      setTimeout(() => {
-        setIsLoading(false);
-        setUploadProgress(0);
-        setProcessingStep('');
-        setEstimatedTime('');
-        setCurrentFile(null);
-      }, 1500);
+      // Reset Upload-State sofort
+      setIsLoading(false);
+      setEstimatedTime('');
+      setCurrentFile(null);
       
     } catch (error) {
       // Verbesserte Fehlermeldungen
@@ -146,8 +115,6 @@ export default function ExcelUploader({ onDataLoaded, onError }: ExcelUploaderPr
       
       onError(errorMessage);
       setIsLoading(false);
-      setUploadProgress(0);
-      setProcessingStep('');
       setEstimatedTime('');
       setCurrentFile(null);
     }
@@ -197,65 +164,29 @@ export default function ExcelUploader({ onDataLoaded, onError }: ExcelUploaderPr
           {isLoading ? (
             <>
               <div className="w-16 h-16 bg-stroer-500 rounded-full flex items-center justify-center">
-                <Loader2 className="h-8 w-8 text-white animate-spin" />
+                <div className="spinning-globe">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" strokeWidth={2}/>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2 12h20"/>
+                  </svg>
+                </div>
               </div>
-              <div className="space-y-4 w-full max-w-md">
+              <div className="space-y-3">
                 <div className="text-center">
-                  <p className="text-lg font-semibold text-gray-100 dark:text-gray-100 mb-2">
+                  <h2 className="text-xl font-semibold text-gray-100 dark:text-gray-100 mb-2">
                     Excel-Datei wird verarbeitet...
-                  </p>
-                  <p className="text-sm text-gray-400 dark:text-gray-400 mb-1">
-                    {processingStep}
-                  </p>
+                  </h2>
                   {currentFile && (
-                    <p className="text-xs text-gray-500 dark:text-gray-500">
+                    <p className="text-sm text-gray-400 dark:text-gray-400 mb-2">
                       {currentFile.name} ({(currentFile.size / (1024 * 1024)).toFixed(1)}MB)
                     </p>
                   )}
-                </div>
-                
-                {/* Progress Bar */}
-                <div className="w-full bg-gray-700 dark:bg-gray-600 rounded-full h-3 overflow-hidden">
-                  <div 
-                    className="bg-stroer-500 h-full rounded-full transition-all duration-300 ease-out"
-                    style={{ width: `${uploadProgress}%` }}
-                  />
-                </div>
-                
-                {/* Progress Percentage */}
-                <div className="text-center">
-                  <p className="text-sm font-medium text-stroer-400 dark:text-stroer-400">
-                    {uploadProgress}% abgeschlossen
-                  </p>
                   {estimatedTime && (
-                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-500">
                       Geschätzte Zeit: {estimatedTime}
                     </p>
                   )}
-                </div>
-                
-                {/* Processing Steps */}
-                <div className="space-y-2">
-                  <div className={`flex items-center gap-2 text-xs ${uploadProgress >= 20 ? 'text-green-400' : 'text-gray-500'}`}>
-                    <div className={`w-2 h-2 rounded-full ${uploadProgress >= 20 ? 'bg-green-400' : 'bg-gray-500'}`} />
-                    <span>Datei validiert</span>
-                  </div>
-                  <div className={`flex items-center gap-2 text-xs ${uploadProgress >= 40 ? 'text-green-400' : 'text-gray-500'}`}>
-                    <div className={`w-2 h-2 rounded-full ${uploadProgress >= 40 ? 'bg-green-400' : 'bg-gray-500'}`} />
-                    <span>Excel geparst</span>
-                  </div>
-                  <div className={`flex items-center gap-2 text-xs ${uploadProgress >= 60 ? 'text-green-400' : 'text-gray-500'}`}>
-                    <div className={`w-2 h-2 rounded-full ${uploadProgress >= 60 ? 'bg-green-400' : 'bg-gray-500'}`} />
-                    <span>Daten konvertiert</span>
-                  </div>
-                  <div className={`flex items-center gap-2 text-xs ${uploadProgress >= 80 ? 'text-green-400' : 'text-gray-500'}`}>
-                    <div className={`w-2 h-2 rounded-full ${uploadProgress >= 80 ? 'bg-green-400' : 'bg-gray-500'}`} />
-                    <span>Daten validiert</span>
-                  </div>
-                  <div className={`flex items-center gap-2 text-xs ${uploadProgress >= 100 ? 'text-green-400' : 'text-gray-500'}`}>
-                    <div className={`w-2 h-2 rounded-full ${uploadProgress >= 100 ? 'bg-green-400' : 'bg-gray-500'}`} />
-                    <span>Fertig geladen</span>
-                  </div>
                 </div>
               </div>
             </>

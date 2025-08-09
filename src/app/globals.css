@@ -30,6 +30,26 @@
   animation: columnPulse 2s ease-in-out infinite;
 }
 
+/* Spin Animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Spinning Globe Animation */
+.spinning-globe {
+  font-size: 32px;
+  animation: spin 1.5s linear infinite;
+  display: inline-block;
+  animation-play-state: running;
+  animation-fill-mode: forwards;
+  will-change: transform;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

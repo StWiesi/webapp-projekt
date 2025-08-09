@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import { MapPin, BarChart3, Globe } from 'lucide-react';
+import { MapPin, Globe } from 'lucide-react';
 
 interface GermanyMapProps {
   data: any[];
@@ -1504,7 +1504,7 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="w-12 h-12 bg-stroer-500 rounded-booking flex items-center justify-center mx-auto mb-4">
-              <Globe className="h-6 w-6 text-white animate-pulse" />
+              <Globe className="h-6 w-6 text-white animate-spin" />
             </div>
             <p className="text-gray-400 dark:text-gray-400">Lade Deutschland-Karte...</p>
           </div>
@@ -1534,7 +1534,7 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
         </div>
 
         {/* Controls */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-semibold text-gray-300 dark:text-gray-300 mb-2">
               Karten-Level
@@ -1570,28 +1570,37 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
               ))}
             </select>
           </div>
-        </div>
-      </div>
 
-      {/* Legend */}
-      <div className="px-6 py-4 bg-gray-700/50 dark:bg-gray-800/50 border-b border-gray-700 dark:border-gray-600">
-        <div className="flex items-center gap-4 text-sm">
-          <span className="font-medium text-gray-300 dark:text-gray-300">Legende:</span>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-gray-200 rounded-booking"></div>
-              <span className="text-gray-400 dark:text-gray-400">Niedrig</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div 
-                className="w-4 h-4 rounded-booking" 
-                style={{ backgroundColor: METRIC_OPTIONS.find(m => m.value === currentMetric)?.color || '#FF6B00' }}
-              ></div>
-              <span className="text-gray-400 dark:text-gray-400">Hoch</span>
-            </div>
+          <div className="flex items-end">
+            <button
+              onClick={() => {
+                if (mapInstanceRef.current) {
+                  // Reset auf Standard-Position und Zoom
+                  const defaultCenter = { lat: 51.1657, lng: 10.4515 };
+                  const defaultZoom = 6;
+                  
+                  mapInstanceRef.current.setCenter(defaultCenter);
+                  mapInstanceRef.current.setZoom(defaultZoom);
+                  
+                  // Gespeicherte Position zurücksetzen
+                  savedMapStateRef.current = {
+                    center: defaultCenter,
+                    zoom: defaultZoom
+                  };
+                }
+              }}
+              className="w-full px-4 py-2 bg-gray-700 dark:bg-gray-600 text-gray-300 dark:text-gray-300 hover:bg-gray-600 dark:hover:bg-gray-500 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Karte zurücksetzen
+            </button>
           </div>
         </div>
       </div>
+
+
 
       {/* Map */}
       <div className="p-6">
