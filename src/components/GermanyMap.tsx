@@ -72,6 +72,9 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
   const scrollPositionRef = useRef<number>(0);
   const shouldRestoreScrollRef = useRef<boolean>(false);
   const savedMapStateRef = useRef<{ center: { lat: number; lng: number }; zoom: number } | null>(null);
+  
+  // Globale Referenz für den aktuell geöffneten Tooltip
+  const currentOpenTooltipRef = useRef<any>(null);
 
   const currentMetric = (selectedMetric || localSelectedMetric) as MetricType;
 
@@ -508,6 +511,7 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
       private maxMetricValue: number;
       private currentMetric: MetricType;
       private tooltip: any;
+      private currentOpenTooltipRef: any;
 
       constructor(
         location: LocationData, 
@@ -515,7 +519,8 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
         map: any, 
         metricValue: number, 
         maxMetricValue: number,
-        currentMetric: MetricType
+        currentMetric: MetricType,
+        currentOpenTooltipRef: any
       ) {
         super();
         this.location = location;
@@ -526,6 +531,7 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
         this.currentMetric = currentMetric;
         this.div = null;
         this.tooltip = null;
+        this.currentOpenTooltipRef = currentOpenTooltipRef;
         this.setMap(map);
       }
 
@@ -548,12 +554,21 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
         // Click Event
         div.addEventListener('click', (e) => {
           e.stopPropagation();
+          
+          // Schließe vorherigen Tooltip falls vorhanden
+          if (this.currentOpenTooltipRef.current) {
+            this.currentOpenTooltipRef.current.close();
+          }
+          
           const projection = this.getProjection();
           const point = projection.fromLatLngToDivPixel(
             new window.google.maps.LatLng(this.coordinates.lat, this.coordinates.lng)
           );
           this.tooltip.setPosition(new window.google.maps.LatLng(this.coordinates.lat, this.coordinates.lng));
           this.tooltip.open(this.map);
+          
+          // Setze aktuellen Tooltip als geöffnet
+          this.currentOpenTooltipRef.current = this.tooltip;
         });
 
         // Hover Events
@@ -687,6 +702,10 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
           this.tooltip.close();
           this.tooltip = null;
         }
+        // Lösche globale Referenz falls es der aktuelle Tooltip ist
+        if (this.currentOpenTooltipRef.current === this.tooltip) {
+          this.currentOpenTooltipRef.current = null;
+        }
       }
     };
   };
@@ -723,7 +742,13 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
       });
 
       marker.addListener('click', () => {
+        // Schließe vorherigen Tooltip falls vorhanden
+        if (currentOpenTooltipRef.current) {
+          currentOpenTooltipRef.current.close();
+        }
         tooltip.open(map, marker);
+        // Setze aktuellen Tooltip als geöffnet
+        currentOpenTooltipRef.current = tooltip;
       });
 
       (marker as any).locationData = location;
@@ -740,7 +765,8 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
       map, 
       metricValue, 
       maxMetricValue,
-      currentMetric
+      currentMetric,
+      currentOpenTooltipRef
     );
 
     // Speichere Referenz für Updates
@@ -1085,7 +1111,13 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
           });
 
           marker.addListener('click', () => {
+            // Schließe vorherigen Tooltip falls vorhanden
+            if (currentOpenTooltipRef.current) {
+              currentOpenTooltipRef.current.close();
+            }
             tooltip.open(map, marker);
+            // Setze aktuellen Tooltip als geöffnet
+            currentOpenTooltipRef.current = tooltip;
           });
 
           (marker as any).locationData = location;
@@ -1453,6 +1485,10 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
   useEffect(() => {
     if (typeof window !== 'undefined' && !window.google && !googleLoaded && !scriptLoadedRef.current) {
       scriptLoadedRef.current = true;
+      
+      // Debug: Log API key status
+      console.log('Google Maps API Key:', process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? 'Present' : 'Missing');
+      
       const script = document.createElement('script');
       script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=geometry,markerclusterer`;
       script.async = true;
