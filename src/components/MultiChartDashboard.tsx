@@ -268,10 +268,7 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
   const chartData = useMemo(() => {
     if (filteredRows.length === 0 || columnIndices.date === -1) return [];
 
-    // Limitiere auf die ersten 10.000 Zeilen für Performance
-    const limitedRows = filteredRows.slice(0, 10000);
-
-
+    // Verarbeite alle gefilterten Zeilen für korrekte Diagramm-Daten
 
     if (filteredRows.length === 0) return [];
 
@@ -535,7 +532,7 @@ export default function MultiChartDashboard({ data, filters, columnMapping, sele
                           if (metricInfo?.unit === '€') {
                             return `€${(value / 1000).toFixed(0)}k`;
                           } else if (metricInfo?.unit === '%') {
-                            return `${value.toFixed(0)}%`;
+                            return `${value.toFixed(1)}%`;
                           }
                           return `${(value / 1000).toFixed(0)}k`;
                         }}

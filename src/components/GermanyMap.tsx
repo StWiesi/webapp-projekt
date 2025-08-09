@@ -61,6 +61,7 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
   const dataLayerRef = useRef<any>(null);
   const circlesRef = useRef<any[]>([]);
   const columnsRef = useRef<any[]>([]);
+  const siteMarkersRef = useRef<any[]>([]);
   const [mapLevel, setMapLevel] = useState<MapLevel>('region');
   const [localSelectedMetric, setLocalSelectedMetric] = useState<MetricType>('cost');
   const [geoJsonData, setGeoJsonData] = useState<any>(null);
@@ -70,6 +71,7 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
   const scriptLoadedRef = useRef(false);
   const scrollPositionRef = useRef<number>(0);
   const shouldRestoreScrollRef = useRef<boolean>(false);
+  const savedMapStateRef = useRef<{ center: { lat: number; lng: number }; zoom: number } | null>(null);
 
   const currentMetric = (selectedMetric || localSelectedMetric) as MetricType;
 
@@ -99,12 +101,47 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
     loadGeoJsonData();
   }, [mapLevel]);
 
-  // Verarbeite Daten für die Karte - verarbeite alle Daten
+  // Verarbeite Daten für die Karte - mit Filter-Anwendung
   const locationsData = useMemo((): LocationData[] => {
     if (!data.length) return [];
 
-    // Verarbeite alle Daten - kein Limit mehr
-    const allData = data;
+    // Wende Filter auf die Daten an
+    const filteredData = data.filter((item) => {
+      // Network Filter
+      if (filters.network.length > 0 && !filters.network.includes(item.network || item.Network || '')) {
+        return false;
+      }
+      
+      // Region/Bundesland Filter
+      if (filters.region.length > 0 && !filters.region.includes(item.region || item.bundesland || item.Region || item.Bundesland || '')) {
+        return false;
+      }
+      
+      // City Filter
+      if (filters.city.length > 0 && !filters.city.includes(item.city || item.stadt || item.City || item.Stadt || '')) {
+        return false;
+      }
+      
+      // Site Filter
+      if (filters.site.length > 0 && !filters.site.includes(item.site || item.website || item.Site || item.Website || '')) {
+        return false;
+      }
+      
+      // Screen IDs Filter
+      if (filters.screenIds.length > 0 && !filters.screenIds.includes(item.screenId || item.screen_id || item.ScreenId || '')) {
+        return false;
+      }
+      
+      // Auction Type Filter
+      if (filters.auctionType.length > 0 && !filters.auctionType.includes(item.auctionType || item.auction_type || item.AuctionType || '')) {
+        return false;
+      }
+      
+      return true;
+    });
+
+    // Verarbeite gefilterte Daten
+    const allData = filteredData;
 
     // Gruppiere Daten nach Standort
     const locationGroups = new Map<string, LocationData>();
@@ -169,7 +206,7 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
     });
 
     return Array.from(locationGroups.values());
-  }, [data, mapLevel]); // Nur abhängig von data und mapLevel, da Daten bereits gefiltert sind
+  }, [data, mapLevel, filters]); // Abhängig von data, mapLevel und filters
 
   // Hilfsfunktion für Bundesland-Namen-Normalisierung
   const normalizeBundeslandName = (name: string): string => {
@@ -336,24 +373,55 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
         </div>
     `;
 
-    // Zeige zusätzliche Metriken für Kontext
+    // Zeige zusätzliche Metriken für Kontext mit korrekten Formaten
     if (currentMetric !== 'cost' && locationData.metrics.cost > 0) {
+      const costFormatted = new Intl.NumberFormat('de-DE', { 
+        style: 'currency', 
+        currency: 'EUR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(locationData.metrics.cost);
+      
       content += `
         <div style="margin-bottom: 4px;">
           <span style="color: #6b7280;">Außenumsatz:</span>
           <span style="font-weight: bold; color: #111827; margin-left: 8px;">
-            ${formatMetricValue(locationData.metrics.cost)}
+            ${costFormatted}
           </span>
         </div>
       `;
     }
 
     if (currentMetric !== 'plays' && locationData.metrics.plays > 0) {
+      const playsFormatted = new Intl.NumberFormat('de-DE').format(Math.round(locationData.metrics.plays));
+      
       content += `
         <div style="margin-bottom: 4px;">
           <span style="color: #6b7280;">Plays:</span>
           <span style="font-weight: bold; color: #111827; margin-left: 8px;">
-            ${formatMetricValue(locationData.metrics.plays)}
+            ${playsFormatted}
+          </span>
+        </div>
+      `;
+    }
+
+    if (currentMetric !== 'coverage' && locationData.metrics.coverage > 0) {
+      content += `
+        <div style="margin-bottom: 4px;">
+          <span style="color: #6b7280;">Coverage:</span>
+          <span style="font-weight: bold; color: #111827; margin-left: 8px;">
+            ${locationData.metrics.coverage.toFixed(1)}%
+          </span>
+        </div>
+      `;
+    }
+
+    if (currentMetric !== 'play_rate' && locationData.metrics.play_rate > 0) {
+      content += `
+        <div style="margin-bottom: 4px;">
+          <span style="color: #6b7280;">Play Rate:</span>
+          <span style="font-weight: bold; color: #111827; margin-left: 8px;">
+            ${locationData.metrics.play_rate.toFixed(1)}%
           </span>
         </div>
       `;
@@ -592,11 +660,13 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
         if (this.maxMetricValue === 0) return 50;
         
         const intensity = this.metricValue / this.maxMetricValue;
-        const baseHeight = 30;
+        const baseHeight = 50; // Erhöhte Mindesthöhe
         const maxHeight = 200;
         const zoomFactor = Math.max(0.5, Math.min(2.0, zoom / 8));
         
-        return baseHeight + (intensity * (maxHeight - baseHeight)) * zoomFactor;
+        // Mindesthöhe für alle Säulen, auch bei niedrigen Werten
+        const calculatedHeight = baseHeight + (intensity * (maxHeight - baseHeight)) * zoomFactor;
+        return Math.max(30, calculatedHeight); // Mindestens 30px sichtbar
       }
 
       updateMetric(newMetricValue: number, newMaxMetricValue: number): void {
@@ -684,17 +754,35 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
   const createGoogleMap = useCallback(() => {
     if (!mapRef.current || !geoJsonData || !googleLoaded) return;
 
-    // Bei Level-Änderungen: Reset Zoom und Zentrum
-    const defaultZoom = 6; // Deutschland-Übersicht
-    const defaultCenter = { lat: 51.1657, lng: 10.4515 }; // Deutschland Zentrum
+    // Cleanup vorherige Elemente
+    circlesRef.current.forEach(circle => circle.setMap(null));
+    columnsRef.current.forEach(column => column.setMap(null));
+    siteMarkersRef.current.forEach(marker => marker.setMap(null));
+    circlesRef.current = [];
+    columnsRef.current = [];
+    siteMarkersRef.current = [];
+
+    // Speichere aktuelle Position vor der Neuerstellung (falls vorhanden)
+    if (mapInstanceRef.current) {
+      const currentCenter = mapInstanceRef.current.getCenter();
+      const currentZoom = mapInstanceRef.current.getZoom();
+      savedMapStateRef.current = {
+        center: { lat: currentCenter.lat(), lng: currentCenter.lng() },
+        zoom: currentZoom
+      };
+    }
+
+    // Verwende gespeicherte Position oder Standard
+    const mapCenter = savedMapStateRef.current?.center || { lat: 51.1657, lng: 10.4515 };
+    const mapZoom = savedMapStateRef.current?.zoom || 6;
 
     // Berechne Maximalwerte für Farbintensität
     const maxMetricValue = Math.max(...locationsData.map(loc => getMetricValue(loc, currentMetric)));
 
     // Erstelle Karte
     const map = new window.google.maps.Map(mapRef.current, {
-      center: defaultCenter, // Immer Deutschland-Zentrum bei Level-Änderung
-      zoom: defaultZoom, // Immer Standard-Zoom bei Level-Änderung
+      center: mapCenter,
+      zoom: mapZoom,
       // Verbessere Zoom-Kontrollen
       zoomControl: true,
       zoomControlOptions: {
@@ -732,20 +820,23 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
 
     mapInstanceRef.current = map;
 
-    // Zoom-Change Event mit Kreis- und Säulen-Updates
+    // Speichere Position bei Änderungen
+    map.addListener('center_changed', () => {
+      const center = map.getCenter();
+      if (savedMapStateRef.current) {
+        savedMapStateRef.current.center = { lat: center.lat(), lng: center.lng() };
+      }
+    });
+
+    // Zoom-Change Event für 3D-Säulen und Sites
     map.addListener('zoom_changed', () => {
       const newZoom = map.getZoom();
       setCurrentZoom(newZoom);
       
-      // Aktualisiere Kreisgrößen basierend auf neuem Zoom
-      circlesRef.current.forEach(circle => {
-        const location = circle.locationData;
-        if (location) {
-          const metricValue = getMetricValue(location, currentMetric);
-          const newRadius = calculateCircleRadius(metricValue, maxMetricValue, newZoom);
-          circle.setRadius(newRadius);
-        }
-      });
+      // Speichere Zoom-Level
+      if (savedMapStateRef.current) {
+        savedMapStateRef.current.zoom = newZoom;
+      }
       
       // Aktualisiere 3D-Säulen basierend auf neuem Zoom
       columnsRef.current.forEach(column => {
@@ -755,6 +846,32 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
           column.updateMetric(metricValue, maxMetricValue);
         }
       });
+      
+      // Aktualisiere Sites basierend auf neuem Zoom
+      if (mapLevel === 'site') {
+        let sitesToShow: any[] = [];
+        
+        if (newZoom <= 8) {
+          sitesToShow = siteMarkersRef.current
+            .sort((a, b) => (b as any).metricValue - (a as any).metricValue)
+            .slice(0, 50);
+        } else if (newZoom <= 12) {
+          sitesToShow = siteMarkersRef.current
+            .sort((a, b) => (b as any).metricValue - (a as any).metricValue)
+            .slice(0, 200);
+        } else {
+          sitesToShow = siteMarkersRef.current;
+        }
+        
+        // Alle Sites entfernen und nur die ausgewählten anzeigen
+        siteMarkersRef.current.forEach(marker => {
+          marker.setMap(null);
+        });
+        
+        sitesToShow.forEach(marker => {
+          marker.setMap(map);
+        });
+      }
     });
 
     // Zeichne GeoJSON
@@ -772,7 +889,86 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
 
     dataLayerRef.current.setMap(map);
 
-    // Zeichne Kreise nur für Städte und Sites
+    // Bundesländer-Einfärbung für Region-Level
+    if (mapLevel === 'region') {
+      dataLayerRef.current.setStyle((feature: any) => {
+        const featureName = feature.getProperty('name') || feature.getProperty('NAME_1') || feature.getProperty('GEN') || feature.getProperty('NAME');
+        
+        const locationData = locationsData.find(loc => {
+          const locName = loc.name.toLowerCase();
+          const featName = featureName?.toLowerCase();
+          
+          if (locName === featName) return true;
+          if (locName.includes(featName) || featName?.includes(locName)) return true;
+          
+          const alternatives = {
+            'baden-württemberg': ['baden wuerttemberg', 'baden-wuerttemberg'],
+            'bayern': ['bavaria'],
+            'nordrhein-westfalen': ['nordrhein westfalen', 'nrw'],
+            'sachsen-anhalt': ['sachsen anhalt'],
+            'schleswig-holstein': ['schleswig holstein'],
+            'thüringen': ['thueringen', 'thuringia'],
+            'rheinland-pfalz': ['rheinland pfalz'],
+            'mecklenburg-vorpommern': ['mecklenburg vorpommern']
+          };
+          
+          for (const [standard, alts] of Object.entries(alternatives)) {
+            if ((locName === standard && alts.includes(featName)) || 
+                (featName === standard && alts.includes(locName))) {
+              return true;
+            }
+          }
+          
+          return false;
+        });
+
+        // Bundesländer ohne Daten werden grau angezeigt
+        if (!locationData) {
+          return {
+            fillColor: '#e5e7eb',
+            fillOpacity: 0.1,
+            strokeColor: '#9ca3af',
+            strokeWeight: 1,
+            strokeOpacity: 0.5
+          };
+        }
+
+        const metricValue = getMetricValue(locationData, currentMetric);
+        const intensity = getColorIntensity(metricValue, maxMetricValue);
+        const metricInfo = METRIC_OPTIONS.find(m => m.value === currentMetric);
+
+        return {
+          fillColor: metricInfo?.color || '#FF6B00',
+          fillOpacity: 0.3 + intensity * 0.7,
+          strokeColor: metricInfo?.color || '#FF6B00',
+          strokeWeight: 2,
+          strokeOpacity: 1.0
+        };
+      });
+
+      // Click-Events für Bundesländer
+      dataLayerRef.current.addListener('click', (event: any) => {
+        const feature = event.feature;
+        const featureName = feature.getProperty('name') || feature.getProperty('NAME_1') || feature.getProperty('GEN') || feature.getProperty('NAME');
+        
+        const locationData = locationsData.find(loc => {
+          const locName = loc.name.toLowerCase();
+          const featName = featureName?.toLowerCase();
+          return locName === featName || locName.includes(featName) || featName?.includes(locName);
+        });
+
+        if (locationData) {
+          const metricValue = getMetricValue(locationData, currentMetric);
+          const infoWindow = new window.google.maps.InfoWindow({
+            content: generateTooltipContent(locationData, metricValue),
+            position: event.latLng
+          });
+          infoWindow.open(map);
+        }
+      });
+    }
+
+    // Zeichne Elemente für Städte und Sites
     if (mapLevel !== 'region') {
       // Deutsche Städte-Koordinaten (nur für Städte die in den Daten vorkommen)
       const cityCoordinates: { [key: string]: { lat: number; lng: number } } = {
@@ -851,41 +1047,35 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
         'salzgitter': { lat: 52.1508, lng: 10.3333 }
       };
       
-      // Nur Städte/Sites aus den tatsächlichen Daten zeichnen
-      locationsData.forEach((location) => {
-        // Verwende feste Koordinaten für bekannte Städte
-        let coordinates = location.coordinates;
-        
-        if (!coordinates && mapLevel === 'city') {
-          const cityKey = location.name.toLowerCase();
-          coordinates = cityCoordinates[cityKey];
-        }
-        
-        // Fallback: Verwende Deutschland-Zentrum nur wenn wirklich keine Koordinaten verfügbar
-        if (!coordinates) {
-          coordinates = { lat: 51.1657, lng: 10.4515 };
-        }
+      // Rendere Sites und Städte basierend auf Map-Level
+      if (mapLevel === 'site') {
+        // Rendere nur Sites als Marker
+        locationsData.forEach((location) => {
+          let coordinates = location.coordinates;
+          
+          // Fallback: Verwende Deutschland-Zentrum nur wenn wirklich keine Koordinaten verfügbar
+          if (!coordinates) {
+            coordinates = { lat: 51.1657, lng: 10.4515 };
+          }
 
-        const metricValue = getMetricValue(location, currentMetric);
-        const colorIntensity = getColorIntensity(metricValue, maxMetricValue);
-        const metricInfo = METRIC_OPTIONS.find(m => m.value === currentMetric);
-        
-        const baseColor = metricInfo?.color || '#FF6B00';
-        const color = colorIntensity > 0 ? baseColor : '#d1d5db';
+          const metricValue = getMetricValue(location, currentMetric);
+          const colorIntensity = getColorIntensity(metricValue, maxMetricValue);
+          const metricInfo = METRIC_OPTIONS.find(m => m.value === currentMetric);
+          
+          const baseColor = metricInfo?.color || '#FF6B00';
+          const color = colorIntensity > 0 ? baseColor : '#d1d5db';
 
-        if (mapLevel === 'site') {
-          // Für Sites: Verwende normale Marker
+          // Für Sites: Erstelle kleine Marker für Clustering
           const marker = new window.google.maps.Marker({
             position: coordinates,
-            map: map,
             title: `${location.name}: ${formatMetricValue(metricValue)}`,
             icon: {
               path: window.google.maps.SymbolPath.CIRCLE,
-              scale: 8,
+              scale: 2,
               fillColor: color,
               fillOpacity: 0.8,
-              strokeColor: color,
-              strokeWeight: 2
+              strokeColor: '#ffffff',
+              strokeWeight: 1
             }
           });
           
@@ -902,23 +1092,369 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
           (marker as any).metricValue = metricValue;
           (marker as any).maxMetricValue = maxMetricValue;
           
-          circlesRef.current.push(marker);
-        } else {
-          // Für Städte: Verwende 3D-Säulen anstelle von Kreisen
-          // Erstelle 3D-Säule
+          siteMarkersRef.current.push(marker);
+        });
+      } else if (mapLevel === 'city') {
+        // Rendere nur Städte als 3D-Säulen
+        locationsData.forEach((location) => {
+          // Verwende feste Koordinaten für bekannte Städte
+          let coordinates = location.coordinates;
+          
+          if (!coordinates) {
+            const cityKey = location.name.toLowerCase();
+            coordinates = cityCoordinates[cityKey];
+          }
+          
+          // Fallback: Verwende Deutschland-Zentrum nur wenn wirklich keine Koordinaten verfügbar
+          if (!coordinates) {
+            coordinates = { lat: 51.1657, lng: 10.4515 };
+          }
+
+          const metricValue = getMetricValue(location, currentMetric);
+          const colorIntensity = getColorIntensity(metricValue, maxMetricValue);
+          const metricInfo = METRIC_OPTIONS.find(m => m.value === currentMetric);
+          
+          const baseColor = metricInfo?.color || '#FF6B00';
+          const color = colorIntensity > 0 ? baseColor : '#d1d5db';
+
+          // Für Städte: Verwende 3D-Säulen
           const column = create3DColumn(location, coordinates, map);
           columnsRef.current.push(column);
+        });
+      }
+
+      // Für Sites: Intelligente zoom-basierte Anzeige
+      if (mapLevel === 'site') {
+        const currentZoom = map.getZoom();
+        let sitesToShow: any[] = [];
+        
+        // Zoom-basierte Begrenzung für Performance
+        if (currentZoom <= 8) {
+          // Zoom weit draußen: Nur Top 50 Sites
+          sitesToShow = siteMarkersRef.current
+            .sort((a, b) => (b as any).metricValue - (a as any).metricValue)
+            .slice(0, 50);
+        } else if (currentZoom <= 12) {
+          // Zoom mittel: Top 200 Sites
+          sitesToShow = siteMarkersRef.current
+            .sort((a, b) => (b as any).metricValue - (a as any).metricValue)
+            .slice(0, 200);
+        } else {
+          // Zoom nah: Alle Sites
+          sitesToShow = siteMarkersRef.current;
         }
-      });
+        
+        // Zeige nur die ausgewählten Sites
+        siteMarkersRef.current.forEach(marker => {
+          marker.setMap(null); // Alle Marker entfernen
+        });
+        
+        sitesToShow.forEach(marker => {
+          marker.setMap(map); // Nur ausgewählte Marker hinzufügen
+        });
+      }
     }
   }, [geoJsonData, locationsData, currentMetric, mapLevel, googleLoaded]);
+
+  // Karte bei Filteränderungen aktualisieren
+  useEffect(() => {
+    if (mapInstanceRef.current && dataLayerRef.current && locationsData.length > 0) {
+      // Aktualisiere Bundesländer-Einfärbung
+      if (mapLevel === 'region') {
+        const maxMetricValue = Math.max(...locationsData.map(loc => getMetricValue(loc, currentMetric)));
+        
+        dataLayerRef.current.setStyle((feature: any) => {
+          const featureName = feature.getProperty('name') || feature.getProperty('NAME_1') || feature.getProperty('GEN') || feature.getProperty('NAME');
+          
+          const locationData = locationsData.find(loc => {
+            const locName = loc.name.toLowerCase();
+            const featName = featureName?.toLowerCase();
+            
+            if (locName === featName) return true;
+            if (locName.includes(featName) || featName?.includes(locName)) return true;
+            
+            const alternatives = {
+              'baden-württemberg': ['baden wuerttemberg', 'baden-wuerttemberg'],
+              'bayern': ['bavaria'],
+              'nordrhein-westfalen': ['nordrhein westfalen', 'nrw'],
+              'sachsen-anhalt': ['sachsen anhalt'],
+              'schleswig-holstein': ['schleswig holstein'],
+              'thüringen': ['thueringen', 'thuringia'],
+              'rheinland-pfalz': ['rheinland pfalz'],
+              'mecklenburg-vorpommern': ['mecklenburg vorpommern']
+            };
+            
+            for (const [standard, alts] of Object.entries(alternatives)) {
+              if ((locName === standard && alts.includes(featName)) || 
+                  (featName === standard && alts.includes(locName))) {
+                return true;
+              }
+            }
+            
+            return false;
+          });
+
+          // Bundesländer ohne Daten werden grau angezeigt
+          if (!locationData) {
+            return {
+              fillColor: '#e5e7eb',
+              fillOpacity: 0.1,
+              strokeColor: '#9ca3af',
+              strokeWeight: 1,
+              strokeOpacity: 0.5
+            };
+          }
+
+          const metricValue = getMetricValue(locationData, currentMetric);
+          const intensity = getColorIntensity(metricValue, maxMetricValue);
+          const metricInfo = METRIC_OPTIONS.find(m => m.value === currentMetric);
+
+          return {
+            fillColor: metricInfo?.color || '#FF6B00',
+            fillOpacity: 0.3 + intensity * 0.7,
+            strokeColor: metricInfo?.color || '#FF6B00',
+            strokeWeight: 2,
+            strokeOpacity: 1.0
+          };
+        });
+      }
+
+      // Aktualisiere 3D-Säulen für Städte - komplett neu erstellen
+      if (mapLevel === 'city') {
+        // Alte Säulen entfernen
+        columnsRef.current.forEach(column => {
+          column.setMap(null);
+        });
+        columnsRef.current = [];
+
+        // Alte Site-Marker entfernen (falls noch vorhanden)
+        siteMarkersRef.current.forEach(marker => {
+          marker.setMap(null);
+        });
+        siteMarkersRef.current = [];
+
+        // Neue Säulen erstellen
+        const maxMetricValue = Math.max(...locationsData.map(loc => getMetricValue(loc, currentMetric)));
+        
+        // Deutsche Städte-Koordinaten
+        const cityCoordinates: { [key: string]: { lat: number; lng: number } } = {
+          'berlin': { lat: 52.5200, lng: 13.4050 },
+          'hamburg': { lat: 53.5511, lng: 9.9937 },
+          'münchen': { lat: 48.1351, lng: 11.5820 },
+          'köln': { lat: 50.9375, lng: 6.9603 },
+          'frankfurt': { lat: 50.1109, lng: 8.6821 },
+          'stuttgart': { lat: 48.7758, lng: 9.1829 },
+          'düsseldorf': { lat: 51.2277, lng: 6.7735 },
+          'dortmund': { lat: 51.5136, lng: 7.4653 },
+          'essen': { lat: 51.4556, lng: 7.0116 },
+          'leipzig': { lat: 51.3397, lng: 12.3731 },
+          'bremen': { lat: 53.0793, lng: 8.8017 },
+          'dresden': { lat: 51.0504, lng: 13.7373 },
+          'hannover': { lat: 52.3759, lng: 9.7320 },
+          'nürnberg': { lat: 49.4521, lng: 11.0767 },
+          'duisburg': { lat: 51.4344, lng: 6.7623 },
+          'bochum': { lat: 51.4818, lng: 7.2162 },
+          'wuppertal': { lat: 51.2562, lng: 7.1508 },
+          'bielefeld': { lat: 52.0302, lng: 8.5325 },
+          'bonn': { lat: 50.7374, lng: 7.0982 },
+          'mannheim': { lat: 49.4875, lng: 8.4660 },
+          'karlsruhe': { lat: 49.0069, lng: 8.4037 },
+          'wiesbaden': { lat: 50.0782, lng: 8.2397 },
+          'gelsenkirchen': { lat: 51.5177, lng: 7.0857 },
+          'münster': { lat: 51.9607, lng: 7.6261 },
+          'aachen': { lat: 50.7753, lng: 6.0839 },
+          'braunschweig': { lat: 52.2689, lng: 10.5267 },
+          'chemnitz': { lat: 50.8278, lng: 12.9242 },
+          'kiel': { lat: 54.3233, lng: 10.1228 },
+          'halle': { lat: 51.4964, lng: 11.9688 },
+          'magdeburg': { lat: 52.1205, lng: 11.6276 },
+          'freiburg': { lat: 47.9990, lng: 7.8421 },
+          'krefeld': { lat: 51.3397, lng: 6.5853 },
+          'lübeck': { lat: 53.8654, lng: 10.6866 },
+          'oberhausen': { lat: 51.4961, lng: 6.8633 },
+          'erfurt': { lat: 50.9848, lng: 11.0299 },
+          'mainz': { lat: 49.9929, lng: 8.2473 },
+          'rostock': { lat: 54.0924, lng: 12.0991 },
+          'kassel': { lat: 51.3127, lng: 9.4797 },
+          'potsdam': { lat: 52.3906, lng: 13.0645 },
+          'hagen': { lat: 51.3671, lng: 7.4633 },
+          'mülheim': { lat: 51.4275, lng: 6.8827 },
+          'ludwigshafen': { lat: 49.4774, lng: 8.4452 },
+          'leverkusen': { lat: 51.0459, lng: 6.9853 },
+          'oldenburg': { lat: 53.1434, lng: 8.2146 },
+          'osnabrück': { lat: 52.2799, lng: 8.0472 },
+          'solingen': { lat: 51.1714, lng: 7.0845 },
+          'heidelberg': { lat: 49.3988, lng: 8.6724 },
+          'herne': { lat: 51.5388, lng: 7.2162 },
+          'neuss': { lat: 51.2042, lng: 6.6879 },
+          'darmstadt': { lat: 49.8728, lng: 8.6512 },
+          'paderborn': { lat: 51.7189, lng: 8.7575 },
+          'regensburg': { lat: 49.0134, lng: 12.1016 },
+          'ingolstadt': { lat: 48.7665, lng: 11.4258 },
+          'würzburg': { lat: 49.7913, lng: 9.9534 },
+          'fürth': { lat: 49.4778, lng: 10.9887 },
+          'wolfsburg': { lat: 52.4226, lng: 10.7865 },
+          'offenbach': { lat: 50.1006, lng: 8.7665 },
+          'ulm': { lat: 48.4011, lng: 9.9876 },
+          'heilbronn': { lat: 49.1427, lng: 9.2105 },
+          'pforzheim': { lat: 48.8924, lng: 8.6949 },
+          'göttingen': { lat: 51.5413, lng: 9.9158 },
+          'bottrop': { lat: 51.5232, lng: 6.9244 },
+          'trier': { lat: 49.7499, lng: 6.6373 },
+          'reutlingen': { lat: 48.4914, lng: 9.2045 },
+          'bremerhaven': { lat: 53.5396, lng: 8.5809 },
+          'koblenz': { lat: 50.3569, lng: 7.5940 },
+          'bergisch gladbach': { lat: 50.9882, lng: 7.1329 },
+          'jena': { lat: 50.9272, lng: 11.5892 },
+          'remscheid': { lat: 51.1789, lng: 7.1897 },
+          'erlangen': { lat: 49.5897, lng: 11.0041 },
+          'moers': { lat: 51.4534, lng: 6.6326 },
+          'siegen': { lat: 50.8756, lng: 8.0164 },
+          'hildesheim': { lat: 52.1508, lng: 9.9513 },
+          'salzgitter': { lat: 52.1508, lng: 10.3397 },
+          'cottbus': { lat: 51.7563, lng: 14.3349 },
+          'kaiserslautern': { lat: 49.4432, lng: 7.7681 },
+          'gütersloh': { lat: 51.9069, lng: 8.3785 },
+          'schwerin': { lat: 53.6355, lng: 11.4012 },
+          'witten': { lat: 51.4436, lng: 7.3346 },
+          'gera': { lat: 50.8803, lng: 12.0826 },
+          'flensburg': { lat: 54.7837, lng: 9.4360 },
+          'zwickau': { lat: 50.7189, lng: 12.4942 },
+          'marl': { lat: 51.6567, lng: 7.0904 },
+          'lünen': { lat: 51.6164, lng: 7.5284 },
+          'velbert': { lat: 51.3397, lng: 6.9853 },
+          'minden': { lat: 52.2895, lng: 8.9146 },
+          'dessau': { lat: 51.8364, lng: 12.2469 },
+          'villingen-schwenningen': { lat: 48.0584, lng: 8.4566 },
+          'konstanz': { lat: 47.6603, lng: 9.1758 },
+          'worms': { lat: 49.6341, lng: 8.3577 },
+          'neuwied': { lat: 50.4275, lng: 7.4653 },
+          'greifswald': { lat: 54.0964, lng: 13.3875 },
+          'rosenheim': { lat: 47.8564, lng: 12.1291 },
+          'ludwigsburg': { lat: 48.8974, lng: 9.1916 },
+          'stralsund': { lat: 54.3158, lng: 13.0950 },
+          'brandenburg': { lat: 52.4125, lng: 12.5316 },
+          'bocholt': { lat: 51.8389, lng: 6.6153 },
+          'celle': { lat: 52.6226, lng: 10.0809 },
+          'kempten': { lat: 47.7267, lng: 10.3139 },
+          'fulda': { lat: 50.5519, lng: 9.6750 },
+          'neustadt': { lat: 49.3500, lng: 8.1397 },
+          'unna': { lat: 51.5388, lng: 7.6894 },
+          'bergheim': { lat: 50.9557, lng: 6.6394 },
+          'detmold': { lat: 51.9336, lng: 8.8733 },
+          'weiden': { lat: 49.6769, lng: 12.1561 },
+          'dormagen': { lat: 51.0964, lng: 6.8429 },
+          'rheine': { lat: 52.2847, lng: 7.4408 },
+          'bad salzuflen': { lat: 52.0864, lng: 8.7514 },
+          'langenfeld': { lat: 51.1089, lng: 6.9497 },
+          'grevenbroich': { lat: 51.0889, lng: 6.5875 },
+          'bergkamen': { lat: 51.6164, lng: 7.6444 },
+          'emmerich': { lat: 51.8336, lng: 6.2444 },
+          'ahaus': { lat: 52.0794, lng: 7.0083 },
+          'bad oeynhausen': { lat: 52.2064, lng: 8.8008 },
+          'dülmen': { lat: 51.8336, lng: 7.2778 },
+          'kerpen': { lat: 50.8714, lng: 6.6969 },
+      };
+
+        // Erstelle 3D-Säulen für alle Städte, die in den Daten vorkommen
+        Object.entries(cityCoordinates).forEach(([cityName, coordinates]) => {
+          const locationData = locationsData.find(loc => {
+            const normalizedLocationName = normalizeCityName(loc.name).toLowerCase();
+            const normalizedCityName = cityName.toLowerCase();
+            return normalizedLocationName === normalizedCityName;
+          });
+          
+          if (locationData) {
+            const column = create3DColumn(locationData, coordinates, mapInstanceRef.current);
+            if (column) {
+              columnsRef.current.push(column);
+            }
+          }
+        });
+      }
+
+      // Aktualisiere Site-Marker - komplett neu erstellen
+      if (mapLevel === 'site') {
+        // Alte Marker entfernen
+        siteMarkersRef.current.forEach(marker => {
+          marker.setMap(null);
+        });
+        siteMarkersRef.current = [];
+
+        // Alte 3D-Säulen entfernen (falls noch vorhanden)
+        columnsRef.current.forEach(column => {
+          column.setMap(null);
+        });
+        columnsRef.current = [];
+
+        // Neue Marker erstellen
+        const maxMetricValue = Math.max(...locationsData.map(loc => getMetricValue(loc, currentMetric)));
+        const metricInfo = METRIC_OPTIONS.find(m => m.value === currentMetric);
+
+        locationsData.forEach(location => {
+          if (location.coordinates) {
+            const metricValue = getMetricValue(location, currentMetric);
+            const intensity = getColorIntensity(metricValue, maxMetricValue);
+            
+            const marker = new window.google.maps.Marker({
+              position: { lat: location.coordinates.lat, lng: location.coordinates.lng },
+              map: null, // Erstmal nicht anzeigen
+              icon: {
+                path: window.google.maps.SymbolPath.CIRCLE,
+                scale: 3,
+                fillColor: metricInfo?.color || '#FF6B00',
+                fillOpacity: 0.8,
+                strokeColor: '#ffffff',
+                strokeWeight: 1
+              },
+              title: `${location.name}: ${formatMetricValue(metricValue)}`
+            });
+
+            // Tooltip hinzufügen
+            marker.addListener('click', () => {
+              const infoWindow = new window.google.maps.InfoWindow({
+                content: generateTooltipContent(location, metricValue),
+                position: { lat: location.coordinates!.lat, lng: location.coordinates!.lng }
+              });
+              infoWindow.open(mapInstanceRef.current);
+            });
+
+            // Marker zur Referenz hinzufügen
+            (marker as any).metricValue = metricValue;
+            siteMarkersRef.current.push(marker);
+          }
+        });
+
+        // Zoom-basierte Anzeige anwenden
+        const currentZoom = mapInstanceRef.current.getZoom();
+        let sitesToShow: any[] = [];
+        
+        if (currentZoom <= 8) {
+          sitesToShow = siteMarkersRef.current
+            .sort((a, b) => (b as any).metricValue - (a as any).metricValue)
+            .slice(0, 50);
+        } else if (currentZoom <= 12) {
+          sitesToShow = siteMarkersRef.current
+            .sort((a, b) => (b as any).metricValue - (a as any).metricValue)
+            .slice(0, 200);
+        } else {
+          sitesToShow = siteMarkersRef.current;
+        }
+        
+        // Nur die ausgewählten Sites anzeigen
+        sitesToShow.forEach(marker => {
+          marker.setMap(mapInstanceRef.current);
+        });
+      }
+    }
+  }, [locationsData, currentMetric, mapLevel]);
 
   // Google Maps Script laden - nur einmal
   useEffect(() => {
     if (typeof window !== 'undefined' && !window.google && !googleLoaded && !scriptLoadedRef.current) {
       scriptLoadedRef.current = true;
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=geometry`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=geometry,markerclusterer`;
       script.async = true;
       script.defer = true;
       script.onload = () => {
@@ -953,7 +1489,7 @@ export default function GermanyMap({ data, filters, selectedMetric, onMetricChan
         }, 100);
       }
     }
-  }, [googleLoaded, isLoading, geoJsonData, mapLevel, currentMetric, locationsData]); // Füge locationsData hinzu
+  }, [googleLoaded, isLoading, geoJsonData, mapLevel, currentMetric]); // locationsData wird separat gehandhabt
 
   const handleMetricChange = (metric: MetricType) => {
     scrollPositionRef.current = window.scrollY;

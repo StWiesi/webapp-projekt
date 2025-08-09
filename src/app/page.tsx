@@ -108,11 +108,11 @@ export default function Home() {
       const headers = excelData[0];
       const rows = excelData.slice(1);
       
-      // Limitiere auf die ersten 10.000 Zeilen für Performance
-      const limitedRows = rows.slice(0, 10000);
+      // Verarbeite alle Daten - kein Limit für Konsistenz mit dem Histogramm
+      const allRows = rows;
       
       // Filtere Zeilen basierend auf den aktiven Filtern
-      const filteredRows = limitedRows.filter(row => {
+      const filteredRows = allRows.filter(row => {
         // Prüfe nur Filter, die tatsächlich Werte haben (nicht leer sind)
         if (filters.network && filters.network.length > 0) {
           const columnIndex = columnMapping.network;
@@ -295,9 +295,8 @@ export default function Home() {
       Object.entries(columnMapping).forEach(([key, columnIndex]) => {
         if (columnIndex !== -1) {
           const uniqueValues = new Set<string>();
-          // Limitiere auf die ersten 1000 Zeilen für Performance
-          const limitedRows = rows.slice(0, 1000);
-          limitedRows.forEach(row => {
+          // Verarbeite alle Zeilen für vollständige Filter-Optionen
+          rows.forEach(row => {
             const value = row[columnIndex]?.toString()?.trim();
             if (value && value !== '') {
               uniqueValues.add(value);
@@ -446,6 +445,7 @@ export default function Home() {
                 <GermanyMap
                   data={convertToObjectArray}
                   filters={filters}
+                  columnMapping={columnMapping}
                   selectedMetric={selectedMetric}
                   onMetricChange={setSelectedMetric}
                 />

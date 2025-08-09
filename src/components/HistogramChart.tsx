@@ -60,6 +60,7 @@ const HistogramChart: React.FC<HistogramChartProps> = ({
 }) => {
   const [selectedDimension, setSelectedDimension] = useState('network');
   const [showAllValues, setShowAllValues] = useState(false);
+  const [sortDirection, setSortDirection] = useState<'top' | 'last'>('top'); // 'top' = höchste Werte, 'last' = niedrigste Werte
   
   // Scroll position restoration
   const scrollPositionRef = useRef(0);
@@ -87,7 +88,7 @@ const HistogramChart: React.FC<HistogramChartProps> = ({
       setTimeout(restoreScroll, 50);
       setTimeout(restoreScroll, 100);
     }
-  }, [selectedDimension, showAllValues, selectedMetric]);
+  }, [selectedDimension, showAllValues, selectedMetric, sortDirection]);
 
   const getDisplayLimit = (totalCount: number) => {
     if (totalCount <= 10) return totalCount;
@@ -259,28 +260,38 @@ const HistogramChart: React.FC<HistogramChartProps> = ({
       entry.play_rate = entry.auction_wins > 0 ? (entry.plays / entry.auction_wins) * 100 : 0;
     });
 
-    // Convert to array and sort by selected metric value (descending)
+    // Convert to array and sort by selected metric value
     const sortedData = Array.from(groupedData.entries())
       .map(([name, metrics]) => ({
         name,
         value: metrics[selectedMetric as keyof typeof metrics] || 0,
         unit: metricConfig.unit || ''
       }))
-      .sort((a, b) => b.value - a.value);
+      .sort((a, b) => b.value - a.value); // Immer von groß nach klein sortieren
 
-    // Limit data for display
+    // Limit data for display - berücksichtige Sortierrichtung nur bei limitierter Ansicht
     const displayLimit = getDisplayLimit(sortedData.length);
-    const histogramData = showAllValues ? sortedData : sortedData.slice(0, displayLimit);
+    let histogramData;
+    
+    if (showAllValues) {
+      // Bei "Alle": Immer von groß nach klein
+      histogramData = sortedData;
+    } else {
+      // Bei limitierter Ansicht: Berücksichtige Sortierrichtung
+      histogramData = sortDirection === 'top' 
+        ? sortedData.slice(0, displayLimit)  // Top X (höchste Werte)
+        : sortedData.slice(-displayLimit);   // Last X (niedrigste Werte)
+    }
 
     return { histogramData, sortedData };
-  }, [data, filters, columnMapping, selectedDimension, selectedMetric, showAllValues]);
+  }, [data, filters, columnMapping, selectedDimension, selectedMetric, showAllValues, sortDirection]);
 
   const { histogramData, sortedData } = histogramDataResult;
 
   const formatValue = (value: number) => {
     const currentMetric = METRICS.find(m => m.key === selectedMetric);
     if (currentMetric?.unit === '%') {
-      return `${value.toFixed(2)}%`;
+      return `${value.toFixed(1)}%`;
     } else if (currentMetric?.unit === '€') {
       return new Intl.NumberFormat('de-DE', { 
         style: 'currency', 
@@ -289,7 +300,7 @@ const HistogramChart: React.FC<HistogramChartProps> = ({
         maximumFractionDigits: 0
       }).format(value);
     }
-    return new Intl.NumberFormat('de-DE').format(value);
+    return new Intl.NumberFormat('de-DE').format(Math.round(value));
   };
 
   const handleDimensionChange = (dimension: string) => {
@@ -307,6 +318,8 @@ const HistogramChart: React.FC<HistogramChartProps> = ({
     saveScrollPosition();
     setShowAllValues(!showAllValues);
   };
+
+
 
   const displayLimit = getDisplayLimit(sortedData.length);
   const currentDisplayCount = showAllValues ? sortedData.length : Math.min(displayLimit, sortedData.length);
@@ -352,19 +365,40 @@ const HistogramChart: React.FC<HistogramChartProps> = ({
         {/* Display Controls */}
         <div className="flex flex-col sm:flex-row items-center gap-4">
           <div className="flex items-center gap-2">
+            {/* Top Button - immer sichtbar */}
             <button
               onClick={() => {
                 saveScrollPosition();
+                setSortDirection('top');
                 setShowAllValues(false);
               }}
               className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                !showAllValues
+                !showAllValues && sortDirection === 'top'
                   ? 'bg-stroer-500 text-white'
                   : 'bg-gray-700 dark:bg-gray-600 text-gray-300 dark:text-gray-300 hover:bg-gray-600 dark:hover:bg-gray-500'
               }`}
             >
               Top {displayLimit}
             </button>
+            
+            {/* Last Button - nur anzeigen wenn genug Werte vorhanden */}
+            {totalCount > 10 && (
+              <button
+                onClick={() => {
+                  saveScrollPosition();
+                  setSortDirection('last');
+                  setShowAllValues(false);
+                }}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  !showAllValues && sortDirection === 'last'
+                    ? 'bg-stroer-500 text-white'
+                    : 'bg-gray-700 dark:bg-gray-600 text-gray-300 dark:text-gray-300 hover:bg-gray-600 dark:hover:bg-gray-500'
+                }`}
+              >
+                Last {displayLimit}
+              </button>
+            )}
+            
             <button
               onClick={toggleShowAll}
               className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${

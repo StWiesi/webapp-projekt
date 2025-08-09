@@ -27,7 +27,7 @@ const COLUMN_MAPPINGS = [
   { key: 'cost', label: 'Kosten', category: 'Metriken', icon: '💰', required: false },
   { key: 'total_impressions', label: 'Total Impressions', category: 'Metriken', icon: '👁️', required: false },
   { key: 'plays', label: 'Plays', category: 'Metriken', icon: '▶️', required: false },
-  { key: 'auction_wins', label: 'Auction Wins', category: 'Metriken', icon: '🏆', required: false },
+  { key: 'auction_wins', label: 'Scheduled Plays', category: 'Metriken', icon: '🏆', required: false },
   { key: 'ad_requests', label: 'Ad Requests', category: 'Metriken', icon: '📊', required: false },
   
   // Dimensionen
