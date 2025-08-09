@@ -100,7 +100,6 @@ const HistogramChart: React.FC<HistogramChartProps> = ({
   const histogramDataResult = useMemo(() => {
     if (!data || data.length < 2) return { histogramData: [], sortedData: [] };
 
-    const headers = data[0];
     const rows = data.slice(1);
     
     // Filter data based on current filters

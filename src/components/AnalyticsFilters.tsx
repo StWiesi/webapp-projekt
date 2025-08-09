@@ -62,7 +62,6 @@ const AnalyticsFilters = React.memo(({ data, filters, onFiltersChange, columnMap
   const shouldRestoreScrollRef = useRef<boolean>(false);
 
   // Verwende die übergebene Spalten-Zuordnung
-  const headers = data[0] || [];
   const rows = data.slice(1);
 
   const columnIndices = useMemo(() => {

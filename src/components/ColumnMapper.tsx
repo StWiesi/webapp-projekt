@@ -319,7 +319,6 @@ const ColumnMapper = React.memo(({ data, onMappingChange }: ColumnMapperProps) =
                 {mappings.map((mapping) => {
                   const currentIndex = finalMapping[mapping.key];
                   const detectionStatus = getDetectionStatus(mapping.key);
-                  const isManuallySet = manualMapping[mapping.key] !== undefined;
                   
                   return (
                     <div key={mapping.key} className="flex items-center gap-4 p-4 border border-gray-700 dark:border-gray-600 rounded-booking-lg hover:bg-gray-700 dark:hover:bg-gray-800 transition-colors">
