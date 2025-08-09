@@ -33,9 +33,11 @@ Eine moderne Next.js Webanwendung zur Analyse von Digital-out-of-Home Daten mit 
 
 ### 🗺️ Karten-Features
 - **3D-Säulen** für Städte mit proportionaler Höhe
-- **Interaktive Tooltips** mit Metrik-Informationen
+- **Intelligente Tooltips** - nur ein Tooltip gleichzeitig geöffnet
+- **Multi-Level-Ansicht** - Bundesländer, Städte und Sites
 - **Zoom und Pan** mit persistierenden 3D-Effekten
 - **Bundesland-Einfärbung** basierend auf Metriken
+- **Automatisches Tooltip-Management** bei Filter-/Level-Änderungen
 - **Responsive Design** für alle Bildschirmgrößen
 
 ### 📱 Benutzerfreundlichkeit
@@ -125,9 +127,12 @@ Die Anwendung unterstützt folgende Spalten-Header:
 
 ### Deutschland-Karte
 - **3D-Säulen:** Proportional zur ausgewählten Metrik
-- **Interaktive Tooltips:** Detaillierte Informationen bei Klick
+- **Intelligente Tooltips:** Nur ein Tooltip gleichzeitig geöffnet, automatisches Schließen
+- **Multi-Level-Navigation:** Bundesländer → Städte → Sites
+- **One-Tooltip-Policy:** Neue Tooltips schließen automatisch vorherige
 - **Zoom-Persistenz:** 3D-Effekte bleiben bei Zoom/Pan erhalten
 - **Stadt-Koordinaten:** Automatische Zuordnung für deutsche Städte
+- **Filter-Integration:** Tooltips schließen sich bei Datenänderungen
 
 ### Performance
 - **Chunk-basierte Verarbeitung:** Optimiert für große Datasets
